@@ -20,6 +20,12 @@ urlpatterns = [
     # Reservist Activity Logs
     path('logs/', views.reservist_activity_logs, name='reservist_activity_logs'),
 
+    # Database Backup/Restore
+    path('database/', views.database_management, name='database_management'),
+    
+    # Server Storage
+    path('storage/', views.server_storage_status, name='server_storage'),
+
     # Account management — RCDG
     path('accounts/manage/rcdg/', views.manage_rcdg_accounts, name='manage_rcdg_accounts'),
     path('accounts/manage/rcdg/create/', views.create_rcdg_account, name='create_rcdg_account'),

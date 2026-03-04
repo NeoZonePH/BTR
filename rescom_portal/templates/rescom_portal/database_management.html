@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Database Management{% endblock %}
+{% block topbar_title %}Database Management{% endblock %}
+{% block nav_database %}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h2><i class="bi bi-database-fill-gear"></i> System Database</h2>
+            <p>Backup and restore the entire application database securely.</p>
+        </div>
+    </div>
+
+    <!-- Backup Section -->
+    <div class="glass-card animate-fade-in" style="margin-bottom: 24px;">
+        <h4 style="margin-bottom: 16px;"><i class="bi bi-cloud-arrow-down-fill text-primary"></i> Download Backup</h4>
+        <p style="color: var(--text-muted);">
+            Generate a <code>.sql</code> backup file of the complete system database. This includes all users,
+            incidents, logs, and settings.
+        </p>
+        <form method="POST" action="{% url 'rescom:database_management' %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="backup">
+            <button type="submit" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:8px;">
+                <i class="bi bi-download"></i> Generate Backup
+            </button>
+        </form>
+    </div>
+
+    <!-- Restore Section -->
+    <div class="glass-card animate-fade-in" style="border-left: 4px solid var(--danger);">
+        <h4 style="margin-bottom: 16px;"><i class="bi bi-cloud-arrow-up-fill text-danger"></i> Restore Database</h4>
+        <div class="alert alert-warning" role="alert"
+            style="background-color: rgba(255, 193, 7, 0.1); border-color: rgba(255, 193, 7, 0.2); color: #ffc107;">
+            <i class="bi bi-exclamation-triangle-fill"></i> <strong>Warning:</strong> Restoring the database will
+            completely overwrite all current data. Make sure you have a recent backup before proceeding.
+        </div>
+        <p style="color: var(--text-muted);">
+            Upload a valid PostgreSQL <code>.sql</code> backup file to restore the system.
+        </p>
+        <form method="POST" action="{% url 'rescom:database_management' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="restore">
+            <div class="mb-3">
+                <label for="backupFile" class="form-label" style="font-weight: 500;">Select Backup File (.sql)</label>
+                <input class="form-control" type="file" id="backupFile" name="backup_file" accept=".sql" required
+                    style="max-width: 400px; background: rgba(255,255,255,0.05); color: var(--text-primary); border-color: var(--border-color);">
+            </div>
+            <button type="submit" class="btn btn-danger" style="display:inline-flex; align-items:center; gap:8px;"
+                onclick="return confirm('WARNING: You are about to overwrite the entire system database. This action cannot be undone. Are you absolutely sure?');">
+                <i class="bi bi-arrow-counterclockwise"></i> Proceed with Restore
+            </button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

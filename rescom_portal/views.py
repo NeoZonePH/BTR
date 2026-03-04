@@ -52,6 +52,130 @@ def reservist_activity_logs(request):
     })
 
 
+@login_required
+def database_management(request):
+    """RESCOM: Database backup and restore operations via pg_dump and psql."""
+    if not _require_rescom(request):
+        return redirect('dashboard')
+        
+    import os
+    import subprocess
+    from datetime import datetime
+    from django.conf import settings
+    from django.http import HttpResponse
+
+    db_settings = settings.DATABASES['default']
+    db_name = db_settings.get('NAME')
+    db_user = db_settings.get('USER')
+    db_password = db_settings.get('PASSWORD')
+    db_host = db_settings.get('HOST', 'localhost')
+    db_port = db_settings.get('PORT', '5432')
+
+    # Ensure PG environment variables are set for subprocess
+    env = os.environ.copy()
+    if db_password:
+        env['PGPASSWORD'] = db_password
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'backup':
+            # Execute pg_dump
+            cmd = [
+                'pg_dump',
+                '-h', db_host,
+                '-p', str(db_port),
+                '-U', db_user,
+                '--clean',   # Include DROP statements for restore
+                '--if-exists',
+                db_name
+            ]
+            try:
+                result = subprocess.run(cmd, env=env, capture_output=True, text=True, check=True)
+                # Return the SQL as a downloadable file
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"backup_{db_name}_{timestamp}.sql"
+                response = HttpResponse(result.stdout, content_type='application/sql')
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                return response
+            except subprocess.CalledProcessError as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Backup failed: {e.stderr}")
+                messages.error(request, f"Database backup failed. Check server logs.")
+
+        elif action == 'restore':
+            backup_file = request.FILES.get('backup_file')
+            if not backup_file:
+                messages.error(request, "Please provide a valid .sql backup file.")
+            elif not backup_file.name.endswith('.sql'):
+                messages.error(request, "Invalid file format. Please upload a .sql file.")
+            else:
+                # Save the uploaded file temporarily
+                import tempfile
+                try:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.sql') as temp_file:
+                        for chunk in backup_file.chunks():
+                            temp_file.write(chunk)
+                        temp_file_path = temp_file.name
+
+                    # Execute psql to restore
+                    cmd = [
+                        'psql',
+                        '-h', db_host,
+                        '-p', str(db_port),
+                        '-U', db_user,
+                        '-d', db_name,
+                        '-f', temp_file_path
+                    ]
+                    
+                    result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+                    if result.returncode == 0:
+                        messages.success(request, "Database successfully restored from backup!")
+                    else:
+                        messages.error(request, f"Database restore encountered errors. Error output: {result.stderr[:200]}")
+                        
+                except Exception as e:
+                    messages.error(request, f"Restore process failed: {str(e)}")
+                finally:
+                    # Clean up the temporary file
+                    if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+                        os.remove(temp_file_path)
+        
+        return redirect('rescom:database_management')
+
+    return render(request, 'rescom_portal/database_management.html')
+
+@login_required
+def server_storage_status(request):
+    """RESCOM: Monitor server disk storage usage."""
+    if not _require_rescom(request):
+        return redirect('dashboard')
+        
+    import shutil
+    
+    # Get disk usage for the root partition
+    total, used, free = shutil.disk_usage('/')
+    
+    # Convert bytes to gigabytes
+    gb = 1024 ** 3
+    total_gb = round(total / gb, 2)
+    used_gb = round(used / gb, 2)
+    free_gb = round(free / gb, 2)
+    
+    # Calculate percentages for the UI
+    used_percentage = round((used / total) * 100, 1)
+    
+    context = {
+        'total_gb': total_gb,
+        'used_gb': used_gb,
+        'free_gb': free_gb,
+        'used_percentage': used_percentage,
+    }
+    
+    return render(request, 'rescom_portal/server_storage.html', context)
+
+
 # ════════════════════════════════════════════════════════════════
 # RCDG ACCOUNT MANAGEMENT (RESCOM only)
 # ════════════════════════════════════════════════════════════════

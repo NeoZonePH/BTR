@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Server Storage Dashboard{% endblock %}
+{% block topbar_title %}Server Storage{% endblock %}
+{% block nav_server_storage %}active{% endblock %}
+
+{% block content %}
+<style>
+.storage-chart-wrap { display: block; }
+.storage-chart-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
+</style>
+<div class="page-content">
+    <div class="page-header animate-fade-in d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h2><i class="bi bi-hdd-stack-fill"></i> Storage Status</h2>
+            <p>Real-time disk usage analytics for the host server.</p>
+        </div>
+    </div>
+
+    <!-- Storage Overview Cards -->
+    <div class="row mb-4 animate-fade-in">
+        <div class="col-md-4">
+            <div class="glass-card text-center p-4 h-100" style="border-top: 4px solid var(--primary);">
+                <i class="bi bi-hdd-rack-fill" style="font-size: 2.5rem; color: var(--primary);"></i>
+                <h3 class="mt-3 mb-1" style="font-weight: 700;">{{ total_gb }} GB</h3>
+                <p class="text-muted mb-0" style="font-weight: 500;">Total Internal Setup Capacity</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card text-center p-4 h-100" style="border-top: 4px solid var(--danger);">
+                <i class="bi bi-pie-chart-fill" style="font-size: 2.5rem; color: var(--danger);"></i>
+                <h3 class="mt-3 mb-1" style="font-weight: 700;">{{ used_gb }} GB</h3>
+                <p class="text-muted mb-0" style="font-weight: 500;">Capacity Used Data Storage</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card text-center p-4 h-100" style="border-top: 4px solid var(--success);">
+                <i class="bi bi-hdd-network-fill" style="font-size: 2.5rem; color: var(--success);"></i>
+                <h3 class="mt-3 mb-1" style="font-weight: 700;">{{ free_gb }} GB</h3>
+                <p class="text-muted mb-0" style="font-weight: 500;">Capacity Remaining Data Storage</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Live Chart Section -->
+    <div class="row animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="col-12">
+            <div class="glass-card p-5">
+                <div class="row align-items-center justify-content-center">
+
+                    <div class="col-md-6 d-flex justify-content-center position-relative">
+                        <div class="storage-chart-wrap" style="width: 320px; height: 320px; position: relative;">
+                            <!-- The Canvas for Chart.js - must have a sized parent -->
+                            <canvas id="storageChart"></canvas>
+                            <!-- Center Info Overlay -->
+                            <div class="position-absolute d-flex flex-column align-items-center justify-content-center"
+                                style="top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;">
+                                <h1 style="margin:0; font-weight:800; color:var(--text-primary); font-size: 2.5rem;">
+                                    <span>{{ used_percentage }}</span>%
+                                </h1>
+                                <span
+                                    style="color:var(--text-muted); font-size: 0.9rem; font-weight:500; text-transform:uppercase; letter-spacing:1px;">Disk
+                                    Used</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mt-4 mt-md-0 pl-md-5">
+                        <h4 style="font-weight: 700; margin-bottom: 20px;">System Vitals</h4>
+                        <div class="d-flex align-items-center mb-3">
+                            <span
+                                style="display:inline-block; width:16px; height:16px; border-radius:50%; background: linear-gradient(135deg, #ff4757, #ff6b81); margin-right: 12px; box-shadow: 0 0 10px rgba(255, 71, 87, 0.4);"></span>
+                            <span style="font-size: 1.1rem; color: var(--text-primary);"><strong>{{ used_gb }}
+                                    GB</strong> Used Space</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-4">
+                            <span
+                                style="display:inline-block; width:16px; height:16px; border-radius:50%; background: linear-gradient(135deg, #2ed573, #7bed9f); margin-right: 12px; box-shadow: 0 0 10px rgba(46, 213, 115, 0.4);"></span>
+                            <span style="font-size: 1.1rem; color: var(--text-primary);"><strong>{{ free_gb }}
+                                    GB</strong> Free Space</span>
+                        </div>
+
+                        <div class="alert alert-secondary mt-3"
+                            style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); color: var(--text-muted);">
+                            <i class="bi bi-info-circle-fill text-info me-2"></i> This data reflects the physical
+                            boundaries of the filesystem mounting point (<code>/</code>) hosting this application
+                            instance. Storage dynamically reacts to large database dumps, media uploads, and server
+                            dependencies.
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var canvas = document.getElementById('storageChart');
+        if (!canvas) return;
+        var ctx = canvas.getContext('2d');
+
+        var usedColor = '#ff4757';
+        var freeColor = '#2ed573';
+
+        var usedGb = {{ used_gb }};
+        var freeGb = {{ free_gb }};
+
+        var config = {
+            type: 'doughnut',
+            data: {
+                labels: ['Used (GB)', 'Free (GB)'],
+                datasets: [{
+                    data: [usedGb, freeGb],
+                    backgroundColor: [usedColor, freeColor],
+                    borderWidth: 0,
+                    hoverOffset: 12
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%',
+                layout: { padding: 0 },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function (context) {
+                                return context.label + ': ' + context.raw + ' GB';
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateRotate: true,
+                    animateScale: true,
+                    duration: 1200
+                }
+            }
+        };
+
+        window.requestAnimationFrame(function () {
+            if (typeof Chart !== 'undefined') {
+                new Chart(ctx, config);
+            }
+        });
+    });
+</script>
+{% endblock %}

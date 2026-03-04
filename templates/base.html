@@ -46,64 +46,81 @@
     <nav class="sidebar-nav">
       <div class="nav-section">Main</div>
       {% if user.role == 'RESERVIST' %}
-      <a href="{% url 'reservist:reservist_dashboard' %}" class="nav-link {% block nav_dashboard %}{% endblock %}">
+      <a href="{% url 'reservist:reservist_dashboard' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'reservist_dashboard' %}active{% endif %}">
         <i class="bi bi-grid-1x2-fill"></i> Dashboard
       </a>
-      <a href="{% url 'reservist:create_incident' %}" class="nav-link {% block nav_create %}{% endblock %}">
+      <a href="{% url 'reservist:create_incident' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'create_incident' %}active{% endif %}">
         <i class="bi bi-plus-circle-fill"></i> Report Incident
       </a>
-      <a href="{% url 'reservist:incident_list' %}" class="nav-link {% block nav_incidents %}{% endblock %}">
+      <a href="{% url 'reservist:incident_list' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'incident_list' %}active{% endif %}">
         <i class="bi bi-exclamation-triangle-fill"></i> My Incidents
       </a>
-      <a href="{% url 'reservist:recycle_bin' %}" class="nav-link {% block nav_recycle_bin %}{% endblock %}">
+      <a href="{% url 'reservist:recycle_bin' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'recycle_bin' %}active{% endif %}">
         <i class="bi bi-trash-fill" style="color:var(--danger);"></i> Recycle Bin
       </a>
       {% elif user.role == 'RESCOM' %}
-      <a href="{% url 'rescom:rescom_dashboard' %}" class="nav-link {% block nav_rescom_dash %}{% endblock %}">
+      <a href="{% url 'rescom:rescom_dashboard' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'rescom_dashboard' %}active{% endif %}">
         <i class="bi bi-grid-1x2-fill"></i> Dashboard
       </a>
-      <a href="{% url 'rescom:rescom_incident_list' %}" class="nav-link">
+      <a href="{% url 'rescom:rescom_incident_list' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'rescom_incident_list' %}active{% endif %}">
         <i class="bi bi-exclamation-triangle-fill"></i> All Incidents
       </a>
-      <a href="{% url 'reservist:recycle_bin' %}" class="nav-link">
+      <a href="{% url 'reservist:recycle_bin' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'recycle_bin' %}active{% endif %}">
         <i class="bi bi-trash-fill" style="color:var(--danger);"></i> Recycle Bin
       </a>
-      <a href="{% url 'rescom:reservist_activity_logs' %}"
-        class="nav-link {% block nav_reservist_logs %}{% endblock %}">
-        <i class="bi bi-clock-history"></i> Reservist Logs
+      <a href="{% url 'rescom:server_storage' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'server_storage' %}active{% endif %}">
+        <i class="bi bi-hdd-stack-fill" style="color:var(--info);"></i> Server Storage
       </a>
       {% elif user.role == 'RCDG' %}
-      <a href="{% url 'rcdg:rcdg_dashboard' %}" class="nav-link">
+      <a href="{% url 'rcdg:rcdg_dashboard' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'rcdg_dashboard' %}active{% endif %}">
         <i class="bi bi-grid-1x2-fill"></i> Dashboard
       </a>
-      <a href="{% url 'rcdg:rcdg_incident_list' %}" class="nav-link">
+      <a href="{% url 'rcdg:rcdg_incident_list' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'rcdg_incident_list' %}active{% endif %}">
         <i class="bi bi-exclamation-triangle-fill"></i> All Incidents
       </a>
-      <a href="{% url 'reservist:recycle_bin' %}" class="nav-link">
+      <a href="{% url 'reservist:recycle_bin' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'recycle_bin' %}active{% endif %}">
         <i class="bi bi-trash-fill" style="color:var(--danger);"></i> Recycle Bin
       </a>
       {% elif user.role == 'CDC' %}
-      <a href="{% url 'cdc:cdc_dashboard' %}" class="nav-link">
+      <a href="{% url 'cdc:cdc_dashboard' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'cdc_dashboard' %}active{% endif %}">
         <i class="bi bi-grid-1x2-fill"></i> Dashboard
       </a>
-      <a href="{% url 'cdc:cdc_incident_list' %}" class="nav-link">
+      <a href="{% url 'cdc:cdc_incident_list' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'cdc_incident_list' %}active{% endif %}">
         <i class="bi bi-exclamation-triangle-fill"></i> All Incidents
       </a>
-      <a href="{% url 'reservist:recycle_bin' %}" class="nav-link">
+      <a href="{% url 'reservist:recycle_bin' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'recycle_bin' %}active{% endif %}">
         <i class="bi bi-trash-fill" style="color:var(--danger);"></i> Recycle Bin
       </a>
       {% elif user.role == 'PDRRMO' %}
-      <a href="{% url 'pdrrmo:pdrrmo_dashboard' %}" class="nav-link">
+      <a href="{% url 'pdrrmo:pdrrmo_dashboard' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'pdrrmo_dashboard' %}active{% endif %}">
         <i class="bi bi-grid-1x2-fill"></i> Dashboard
       </a>
-      <a href="{% url 'pdrrmo:pdrrmo_incident_list' %}" class="nav-link">
+      <a href="{% url 'pdrrmo:pdrrmo_incident_list' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'pdrrmo_incident_list' %}active{% endif %}">
         <i class="bi bi-exclamation-triangle-fill"></i> All Incidents
       </a>
       {% elif user.role == 'MDRRMO' %}
-      <a href="{% url 'mdrrmo:mdrrmo_dashboard' %}" class="nav-link">
+      <a href="{% url 'mdrrmo:mdrrmo_dashboard' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'mdrrmo_dashboard' %}active{% endif %}">
         <i class="bi bi-grid-1x2-fill"></i> Dashboard
       </a>
-      <a href="{% url 'mdrrmo:mdrrmo_incident_list' %}" class="nav-link">
+      <a href="{% url 'mdrrmo:mdrrmo_incident_list' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'mdrrmo_incident_list' %}active{% endif %}">
         <i class="bi bi-exclamation-triangle-fill"></i> All Incidents
       </a>
       {% endif %}
@@ -111,41 +128,54 @@
       <!-- Account Management (per role) -->
       {% if user.role == 'RESCOM' %}
       <div class="nav-section mt-3">Account Management</div>
-      <a href="{% url 'rescom:manage_rcdg_accounts' %}" class="nav-link {% block nav_manage_rcdg %}{% endblock %}">
+      <a href="{% url 'rescom:manage_rcdg_accounts' %}"
+        class="nav-link {% if 'manage_rcdg' in request.resolver_match.url_name or 'rcdg_account' in request.resolver_match.url_name %}active{% endif %}">
         <i class="bi bi-people-fill"></i> Manage RCDGs
       </a>
 
       <div class="nav-section mt-3">Reference</div>
-      <a class="nav-link" data-bs-toggle="collapse" href="#orgCollapse" role="button" aria-expanded="false"
+      <a class="nav-link {% if 'ref_rcdg' in request.resolver_match.url_name or 'ref_cdc' in request.resolver_match.url_name %}active{% endif %}"
+        data-bs-toggle="collapse" href="#orgCollapse" role="button"
+        aria-expanded="{% if 'ref_rcdg' in request.resolver_match.url_name or 'ref_cdc' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
         style="display:flex;align-items:center;justify-content:space-between;">
         <span><i class="bi bi-diagram-3-fill"></i> Organization</span>
         <i class="bi bi-chevron-down" style="font-size:0.7rem;"></i>
       </a>
-      <div class="collapse" id="orgCollapse">
-        <a href="{% url 'rescom:ref_rcdg_list' %}" class="nav-link" style="padding-left:38px;font-size:0.82rem;">
+      <div
+        class="collapse {% if 'ref_rcdg' in request.resolver_match.url_name or 'ref_cdc' in request.resolver_match.url_name %}show{% endif %}"
+        id="orgCollapse">
+        <a href="{% url 'rescom:ref_rcdg_list' %}"
+          class="nav-link {% if 'ref_rcdg' in request.resolver_match.url_name %}active{% endif %}"
+          style="padding-left:38px;font-size:0.82rem;">
           <i class="bi bi-building"></i> RCDG
         </a>
-        <a href="{% url 'rescom:ref_cdc_list' %}" class="nav-link" style="padding-left:38px;font-size:0.82rem;">
+        <a href="{% url 'rescom:ref_cdc_list' %}"
+          class="nav-link {% if 'ref_cdc' in request.resolver_match.url_name %}active{% endif %}"
+          style="padding-left:38px;font-size:0.82rem;">
           <i class="bi bi-pin-map-fill"></i> CDC
         </a>
       </div>
       {% elif user.role == 'RCDG' %}
       <div class="nav-section mt-3">Account Management</div>
-      <a href="{% url 'rcdg:manage_cdc_accounts' %}" class="nav-link {% block nav_manage_cdc %}{% endblock %}">
+      <a href="{% url 'rcdg:manage_cdc_accounts' %}"
+        class="nav-link {% if 'manage_cdc' in request.resolver_match.url_name or 'cdc_account' in request.resolver_match.url_name %}active{% endif %}">
         <i class="bi bi-people-fill"></i> Manage CDCs
       </a>
       {% elif user.role == 'CDC' %}
       <div class="nav-section mt-3">Account Management</div>
-      <a href="{% url 'cdc:manage_drrmo_accounts' %}" class="nav-link {% block nav_manage_drrmo %}{% endblock %}">
+      <a href="{% url 'cdc:manage_drrmo_accounts' %}"
+        class="nav-link {% if 'manage_drrmo' in request.resolver_match.url_name or 'drrmo_account' in request.resolver_match.url_name %}active{% endif %}">
         <i class="bi bi-people-fill"></i> Manage DRRMO
       </a>
-      <a href="{% url 'cdc:pending_reservists' %}" class="nav-link {% block nav_pending %}{% endblock %}">
+      <a href="{% url 'cdc:pending_reservists' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'pending_reservists' %}active{% endif %}">
         <i class="bi bi-person-check-fill"></i> Reservist Approvals
       </a>
       {% endif %}
 
       <div class="nav-section mt-3">Analytics</div>
-      <a href="{% url 'reservist:analytics_dashboard' %}" class="nav-link {% block nav_analytics %}{% endblock %}">
+      <a href="{% url 'reservist:analytics_dashboard' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'analytics_dashboard' or request.resolver_match.url_name == 'rescom_analytics' or request.resolver_match.url_name == 'rcdg_analytics' or request.resolver_match.url_name == 'cdc_analytics' or request.resolver_match.url_name == 'pdrrmo_analytics' or request.resolver_match.url_name == 'mdrrmo_analytics' %}active{% endif %}">
         <i class="bi bi-bar-chart-fill"></i> Analytics & AI
       </a>
 
@@ -202,6 +232,22 @@
             {% endfor %}
           </div>
         </div>
+
+        <!-- Reservist Logs Link -->
+        {% if user.role == 'RESCOM' %}
+        <a href="{% url 'rescom:reservist_activity_logs' %}" class="notification-bell" title="Reservist Logs"
+          style="color:var(--text-primary); text-decoration:none; display:flex; align-items:center;">
+          <i class="bi bi-clock-history" style="font-size:1.2rem;"></i>
+        </a>
+        {% endif %}
+
+        <!-- Database Management Link -->
+        {% if user.role == 'RESCOM' %}
+        <a href="{% url 'rescom:database_management' %}" class="notification-bell" title="Database Management"
+          style="color:var(--text-primary); text-decoration:none; display:flex; align-items:center;">
+          <i class="bi bi-database-fill-gear" style="font-size:1.2rem;"></i>
+        </a>
+        {% endif %}
 
         <!-- User Menu Dropdown -->
         <div class="notification-bell" onclick="toggleUserMenu(event)" style="position:relative;">
