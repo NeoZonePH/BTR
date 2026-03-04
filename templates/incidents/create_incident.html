@@ -1,0 +1,283 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Report Incident{% endblock %}
+{% block topbar_title %}Report New Incident{% endblock %}
+{% block nav_create %}active{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in">
+        <h2>Report Emergency Incident</h2>
+        <p>Fill in the details below. Your location will be auto-detected.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="glass-card animate-fade-in">
+                <form method="post" enctype="multipart/form-data" class="glass-form" id="incidentForm">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="id_title">Incident Title</label>
+                        {{ form.title }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_incident_type">Incident Type</label>
+                        {{ form.incident_type }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_description">Description</label>
+                        {{ form.description }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_video_upload">Upload Evidence (Image/Video, max 100MB)</label>
+                        {{ form.video_upload }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="sel_region">Region</label>
+                            {{ form.region }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="sel_province">Province</label>
+                            {{ form.province }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="sel_city">City/Municipality</label>
+                            {{ form.municipality }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="sel_brgy">Barangay</label>
+                            {{ form.barangay }}
+                        </div>
+                    </div>
+
+                    <!-- Hidden geolocation fields -->
+                    {{ form.latitude }}
+                    {{ form.longitude }}
+
+                    <div id="geolocationStatus" class="mb-3" style="font-size:0.82rem;">
+                        <i class="bi bi-geo-alt-fill" style="color:var(--accent);"></i>
+                        <span id="geoText">Detecting your location...</span>
+                    </div>
+
+                    <!-- Manual lat/lng fallback -->
+                    <div id="manualCoords" style="display:none;" class="mb-3">
+                        <div class="alert"
+                            style="background:rgba(255,171,0,0.1);border:1px solid rgba(255,171,0,0.2);color:var(--warning);font-size:0.82rem;">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Geolocation unavailable. Please enter
+                            coordinates manually or click on the map.
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <label>Latitude</label>
+                                <input type="number" step="0.0000001" class="form-control" id="manualLat"
+                                    placeholder="e.g. 14.5995">
+                            </div>
+                            <div class="col-6">
+                                <label>Longitude</label>
+                                <input type="number" step="0.0000001" class="form-control" id="manualLng"
+                                    placeholder="e.g. 120.9842">
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if form.errors %}
+                    <div class="alert alert-danger mb-3" style="font-size:0.82rem;">
+                        {% for field in form %}
+                        {% for error in field.errors %}
+                        <div>{{ field.label }}: {{ error }}</div>
+                        {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn-target btn-target-primary w-100">
+                        <i class="bi bi-send-fill"></i> Submit Incident Report
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="glass-card animate-fade-in" style="padding:0;overflow:hidden;">
+                <div style="padding:14px 20px;border-bottom:1px solid var(--border-color);">
+                    <h6 style="margin:0;font-weight:700;"><i class="bi bi-crosshair" style="color:var(--accent);"></i>
+                        Pin Location</h6>
+                    <small style="color:var(--text-muted);">Click on the map to set incident location</small>
+                </div>
+                <div id="locationMap" style="height:400px;width:100%;"></div>
+            </div>
+
+            <div class="glass-card animate-fade-in mt-3">
+                <h6 style="font-weight:700;margin-bottom:8px;"><i class="bi bi-info-circle-fill"
+                        style="color:var(--accent);"></i> Guidelines</h6>
+                <ul style="font-size:0.82rem;color:var(--text-secondary);padding-left:18px;margin:0;">
+                    <li>Provide a clear, concise title</li>
+                    <li>Include as much detail as possible in the description</li>
+                    <li>Upload a photo or video if available</li>
+                    <li>Ensure your GPS location is accurate</li>
+                    <li>Select the correct incident type</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/geolocation.js' %}"></script>
+<script>
+    // ── Cascading Address Dropdowns (Region → Province → City → Barangay) ──
+    const regionSel = document.getElementById('sel_region');
+    const provinceSel = document.getElementById('sel_province');
+    const citySel = document.getElementById('sel_city');
+    const barangaySel = document.getElementById('sel_brgy');
+
+    function resetSelect(sel, label) {
+        sel.innerHTML = '<option value="">Select ' + label + '</option>';
+    }
+
+    // Load regions on page load
+    fetch('/references/regions/')
+        .then(r => r.json())
+        .then(data => {
+            data.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                opt.dataset.name = item.name;
+                regionSel.appendChild(opt);
+            });
+        });
+
+    regionSel.addEventListener('change', function () {
+        resetSelect(provinceSel, 'Province');
+        resetSelect(citySel, 'City/Municipality');
+        resetSelect(barangaySel, 'Barangay');
+        if (!this.value) return;
+        this.name = 'region';
+        fetch('/references/provinces/?region_id=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    provinceSel.appendChild(opt);
+                });
+            });
+    });
+
+    provinceSel.addEventListener('change', function () {
+        resetSelect(citySel, 'City/Municipality');
+        resetSelect(barangaySel, 'Barangay');
+        if (!this.value) return;
+        fetch('/references/cities/?province_id=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    citySel.appendChild(opt);
+                });
+            });
+    });
+
+    citySel.addEventListener('change', function () {
+        resetSelect(barangaySel, 'Barangay');
+        if (!this.value) return;
+        fetch('/references/barangays/?city_id=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    barangaySel.appendChild(opt);
+                });
+            });
+    });
+
+    // Before form submit, replace IDs with text names
+    document.getElementById('incidentForm').addEventListener('submit', function () {
+        const replaceWithText = (sel) => {
+            const selected = sel.options[sel.selectedIndex];
+            if (selected && selected.value) {
+                sel.options[sel.selectedIndex].value = selected.textContent;
+            }
+        };
+        replaceWithText(regionSel);
+        replaceWithText(provinceSel);
+        replaceWithText(citySel);
+        replaceWithText(barangaySel);
+    });
+    // Init location picker map
+    const map = new maplibregl.Map({
+        container: 'locationMap',
+        style: {
+            version: 8,
+            sources: {
+                osm: {
+                    type: 'raster',
+                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    attribution: '© OpenStreetMap contributors',
+                },
+            },
+            layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+        },
+        center: [121.774, 12.8797],
+        zoom: 6,
+    });
+
+    let marker = null;
+
+    map.on('click', function (e) {
+        const { lng, lat } = e.lngLat;
+        document.getElementById('id_latitude').value = lat.toFixed(7);
+        document.getElementById('id_longitude').value = lng.toFixed(7);
+        document.getElementById('geoText').textContent = `Location set: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+        if (marker) marker.remove();
+        marker = new maplibregl.Marker({ color: '#00d4ff' })
+            .setLngLat([lng, lat])
+            .addTo(map);
+    });
+
+    // Auto-detect geolocation
+    initGeolocation(function (lat, lng) {
+        document.getElementById('id_latitude').value = lat;
+        document.getElementById('id_longitude').value = lng;
+        document.getElementById('geoText').textContent = `Location detected: ${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}`;
+
+        if (marker) marker.remove();
+        marker = new maplibregl.Marker({ color: '#00d4ff' })
+            .setLngLat([parseFloat(lng), parseFloat(lat)])
+            .addTo(map);
+        map.flyTo({ center: [parseFloat(lng), parseFloat(lat)], zoom: 14 });
+    }, function () {
+        document.getElementById('geoText').textContent = 'Geolocation denied. Click the map or enter manually.';
+        document.getElementById('manualCoords').style.display = 'block';
+    });
+
+    // Manual coordinate input
+    document.getElementById('manualLat')?.addEventListener('input', function () {
+        document.getElementById('id_latitude').value = this.value;
+    });
+    document.getElementById('manualLng')?.addEventListener('input', function () {
+        document.getElementById('id_longitude').value = this.value;
+    });
+</script>
+{% endblock %}

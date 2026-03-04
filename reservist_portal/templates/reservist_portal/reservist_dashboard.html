@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+{% block topbar_title %}Reservist Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in">
+        <h2>Welcome, {{ user.full_name }}</h2>
+        <p>Reservist Portal — Monitor and report emergency incidents</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6 animate-fade-in stagger-1">
+            <div class="glass-card stat-card">
+                <div class="stat-icon gradient-blue"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                <div class="stat-value">{{ stats.total }}</div>
+                <div class="stat-label">Total Reports</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 animate-fade-in stagger-2">
+            <div class="glass-card stat-card">
+                <div class="stat-icon gradient-orange"><i class="bi bi-clock-fill"></i></div>
+                <div class="stat-value">{{ stats.by_status.pending|default:"0" }}</div>
+                <div class="stat-label">Pending</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 animate-fade-in stagger-3">
+            <div class="glass-card stat-card">
+                <div class="stat-icon gradient-teal"><i class="bi bi-check-circle-fill"></i></div>
+                <div class="stat-value">{{ stats.by_status.validated|default:"0" }}</div>
+                <div class="stat-label">Validated</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 animate-fade-in stagger-4">
+            <div class="glass-card stat-card">
+                <div class="stat-icon gradient-green"><i class="bi bi-check2-all"></i></div>
+                <div class="stat-value">{{ stats.by_status.resolved|default:"0" }}</div>
+                <div class="stat-label">Resolved</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map -->
+    <div class="glass-card mb-4 animate-fade-in" style="padding:0;overflow:hidden;">
+        <div
+            style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <h6 style="margin:0;font-weight:700;"><i class="bi bi-geo-alt-fill" style="color:var(--accent);"></i>
+                Incident Map</h6>
+            <div class="d-flex gap-2 flex-wrap">
+                <select id="mapTimeFilter" class="form-select form-select-sm"
+                    style="width:auto;font-size:0.8rem;background:var(--bg-glass);border:1px solid var(--border-color);color:var(--text-primary);">
+                    <option value="">All Time</option>
+                    <option value="day">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month" selected>This Month</option>
+                    <option value="year">This Year</option>
+                </select>
+                <select id="mapTypeFilter" class="form-select form-select-sm"
+                    style="width:auto;font-size:0.8rem;background:var(--bg-glass);border:1px solid var(--border-color);color:var(--text-primary);">
+                    <option value="">All Types</option>
+                    <option value="accident">Accident</option>
+                    <option value="earthquake">Earthquake</option>
+                    <option value="flood">Flood</option>
+                    <option value="typhoon">Typhoon</option>
+                    <option value="fire">Fire</option>
+                    <option value="landslide">Landslide</option>
+                    <option value="others">Others</option>
+                </select>
+                <input type="text" id="mapRegionFilter" placeholder="Filter by region..."
+                    class="form-control form-control-sm"
+                    style="width:150px;font-size:0.8rem;background:var(--bg-glass);border:1px solid var(--border-color);color:var(--text-primary);">
+            </div>
+        </div>
+        <div id="incidentMap" style="height:500px;width:100%;" data-reservist-lat="{{ reservist_lat|default:'' }}"
+            data-reservist-lng="{{ reservist_lng|default:'' }}"></div>
+        <script>
+            window.__RCDG_LOCATIONS__ = {{ rcdg_locations_json | safe }};
+            window.__CDC_LOCATIONS__ = {{ cdc_locations_json | safe }};
+            window.__RESERVIST_LOCATIONS__ = [];
+        </script>
+    </div>
+
+    <!-- Recent Incidents -->
+    <div class="glass-card animate-fade-in">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h6 style="margin:0;font-weight:700;"><i class="bi bi-journal-text" style="color:var(--accent);"></i> My
+                Recent Incidents</h6>
+            <a href="{% url 'reservist:create_incident' %}" class="btn-target btn-target-primary"
+                style="padding:6px 16px;font-size:0.82rem;">
+                <i class="bi bi-plus-lg"></i> New Report
+            </a>
+        </div>
+        <div class="table-responsive">
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Type</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for incident in incidents %}
+                    <tr>
+                        <td>
+                            <strong>{{ incident.title }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge-type badge-{{ incident.incident_type }}">
+                                {{ incident.get_incident_type_display }}
+                            </span>
+                        </td>
+                        <td style="font-size:0.82rem;">
+                            {{ incident.municipality }}, {{ incident.province }}
+                        </td>
+                        <td>
+                            <span class="badge-status badge-{{ incident.status }}">
+                                {{ incident.get_status_display }}
+                            </span>
+                        </td>
+                        <td style="font-size:0.82rem;">{{ incident.created_at|date:"M d, Y" }}</td>
+                        <td><a href="{% url 'reservist:incident_detail' incident.pk %}"
+                                class="btn-target btn-target-outline"
+                                style="padding:4px 12px;font-size:0.75rem;">View</a></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center" style="color:var(--text-muted);padding:32px;">
+                            No incidents reported yet. <a href="{% url 'reservist:create_incident' %}">Report your first
+                                incident</a>.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/map.js' %}"></script>
+<script>
+    initIncidentMap('incidentMap', '/api/incidents/');
+</script>
+{% endblock %}

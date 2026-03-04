@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Analytics{% endblock %}
+{% block topbar_title %}Analytics & AI Insights{% endblock %}
+{% block nav_analytics %}active{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in">
+        <h2>Analytics Dashboard</h2>
+        <p>AI-powered incident analysis and trend detection</p>
+    </div>
+
+    <!-- Time Range Selector -->
+    <div class="glass-card mb-4 animate-fade-in" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-weight:600;font-size:0.85rem;">Time Range:</span>
+        <div class="btn-group">
+            <button class="btn-target btn-target-outline range-btn active" data-range="day"
+                style="padding:6px 16px;font-size:0.8rem;">Day</button>
+            <button class="btn-target btn-target-outline range-btn" data-range="week"
+                style="padding:6px 16px;font-size:0.8rem;">Week</button>
+            <button class="btn-target btn-target-outline range-btn" data-range="month"
+                style="padding:6px 16px;font-size:0.8rem;">Month</button>
+            <button class="btn-target btn-target-outline range-btn" data-range="year"
+                style="padding:6px 16px;font-size:0.8rem;">Year</button>
+        </div>
+        <span id="totalCount" style="margin-left:auto;font-weight:700;font-size:1.1rem;color:var(--accent);">—</span>
+        <span style="font-size:0.82rem;color:var(--text-muted);">total incidents</span>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6 animate-fade-in stagger-1">
+            <div class="glass-card">
+                <h6 style="font-weight:700;margin-bottom:12px;"><i class="bi bi-graph-up"
+                        style="color:var(--accent);"></i> Daily Trend</h6>
+                <div class="chart-container">
+                    <canvas id="dailyChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 animate-fade-in stagger-2">
+            <div class="glass-card">
+                <h6 style="font-weight:700;margin-bottom:12px;"><i class="bi bi-pie-chart-fill"
+                        style="color:var(--accent);"></i> By Incident Type</h6>
+                <div class="chart-container">
+                    <canvas id="typeChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 animate-fade-in stagger-3">
+            <div class="glass-card">
+                <h6 style="font-weight:700;margin-bottom:12px;"><i class="bi bi-map-fill"
+                        style="color:var(--accent);"></i> By Region</h6>
+                <div class="chart-container">
+                    <canvas id="regionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 animate-fade-in stagger-4">
+            <div class="glass-card">
+                <h6 style="font-weight:700;margin-bottom:12px;"><i class="bi bi-check2-circle"
+                        style="color:var(--accent);"></i> By Status</h6>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Summary Section -->
+    <div class="glass-card animate-fade-in">
+        <div
+            style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+            <h6 style="margin:0;font-weight:700;"><i class="bi bi-robot" style="color:var(--accent);"></i> AI-Generated
+                Summary</h6>
+            <div class="d-flex gap-2">
+                <select id="summaryPeriod" class="form-select form-select-sm"
+                    style="width:auto;font-size:0.8rem;background:var(--bg-glass);border:1px solid var(--border-color);color:var(--text-primary);">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly" selected>Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+                <button id="generateSummaryBtn" class="btn-target btn-target-primary"
+                    style="padding:6px 16px;font-size:0.82rem;">
+                    <i class="bi bi-stars"></i> Generate
+                </button>
+            </div>
+        </div>
+
+        <div id="aiSummaryContent" class="ai-summary-box">
+            <div class="summary-header"><i class="bi bi-lightbulb-fill"></i> Summary</div>
+            <div class="summary-text">
+                {% for summary in latest_summaries %}
+                <div class="mb-3 pb-3" style="border-bottom:1px solid var(--border-color);">
+                    <strong>
+                        {{ summary.get_period_display }} —
+                        {{ summary.period_start|date:"M d" }} to
+                        {{ summary.period_end|date:"M d, Y" }}
+                    </strong><br>
+                    {{ summary.summary_text }}
+                </div>
+                {% empty %}
+                <span style="color:var(--text-muted);">No AI summaries generated yet. Click "Generate" to create your
+                    first analysis.</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+    // Use relative URLs so this works for ALL portals (reservist, cdc, rcdg, rescom, etc.)
+    const chartUrl = 'chart-data/';
+    const summaryUrl = 'generate-summary/';
+    let currentRange = 'day';
+
+    function loadCharts(range) {
+        currentRange = range;
+        fetch(chartUrl + '?range=' + range, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('totalCount').textContent = data.total;
+                renderAnalyticsCharts(data);
+            });
+    }
+
+    // Range buttons
+    document.querySelectorAll('.range-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            loadCharts(this.dataset.range);
+        });
+    });
+
+    // Generate AI Summary
+    document.getElementById('generateSummaryBtn').addEventListener('click', function () {
+        const period = document.getElementById('summaryPeriod').value;
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating...';
+
+        fetch(summaryUrl + '?period=' + period, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(r => {
+                if (!r.ok) throw new Error('Server returned ' + r.status);
+                return r.json();
+            })
+            .then(data => {
+                const box = document.querySelector('#aiSummaryContent .summary-text');
+                const summaryHtml = data.summary.replace(/\n/g, '<br>');
+                box.innerHTML = '<div class="mb-3"><strong>' +
+                    period.charAt(0).toUpperCase() + period.slice(1) +
+                    ' Summary</strong><br>' + summaryHtml +
+                    '</div>' + box.innerHTML;
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-stars"></i> Generate';
+            })
+            .catch(err => {
+                console.error('AI Summary error:', err);
+                const box = document.querySelector('#aiSummaryContent .summary-text');
+                box.innerHTML = '<div class="mb-3" style="color:#e74c3c;">' +
+                    '<i class="bi bi-exclamation-triangle"></i> ' +
+                    'Failed to generate summary. Please try again.' +
+                    '</div>' + box.innerHTML;
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-stars"></i> Generate';
+            });
+    });
+
+    loadCharts('day');
+</script>
+{% endblock %}

@@ -1,0 +1,255 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Register{% endblock %}
+
+{% block auth_content %}
+<div class="auth-wrapper">
+    <div class="auth-card" style="max-width:560px;">
+        <div class="auth-logo">
+            <h1>TARGET</h1>
+            <p>Reservist Registration</p>
+        </div>
+
+        {% if form.errors %}
+        <div class="alert alert-danger mb-3" style="font-size:0.82rem;">
+            {% for field in form %}
+            {% for error in field.errors %}
+            <div><strong>{{ field.label }}:</strong> {{ error }}</div>
+            {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+            <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" class="glass-form">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label>Username</label>
+                    {{ form.username }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label>Full Name</label>
+                    {{ form.full_name }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label>Rank</label>
+                    {{ form.rank }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label>AFPSN</label>
+                    {{ form.afpsn }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label>Mobile Number</label>
+                    {{ form.mobile_number }}
+                </div>
+            </div>
+
+            <!-- Address: Cascading dropdowns from database -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label>Region</label>
+                    <select name="region" id="addr_region" class="form-select" required>
+                        <option value="">Select Region</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label>Province</label>
+                    <select name="province" id="addr_province" class="form-select" required>
+                        <option value="">Select Province</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label>City / Municipality</label>
+                    <select name="municipality" id="addr_city" class="form-select" required>
+                        <option value="">Select City/Municipality</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label>Barangay</label>
+                    <select name="barangay" id="addr_barangay" class="form-select">
+                        <option value="">Select Barangay</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- RCDG / CDC Cascading Dropdowns -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label>RCDG <small style="color:var(--text-muted);">(Regional Community Defense
+                            Group)</small></label>
+                    <select name="assigned_rcdg" id="sel_rcdg" class="form-select" required>
+                        <option value="">Select RCDG</option>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label>CDC <small style="color:var(--text-muted);">(Community Defense Center)</small></label>
+                    <select name="assigned_cdc" id="sel_cdc" class="form-select" required>
+                        <option value="">Select CDC</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label>Password</label>
+                    {{ form.password1 }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label>Confirm Password</label>
+                    {{ form.password2 }}
+                </div>
+            </div>
+
+            <div class="alert mb-3"
+                style="background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);font-size:0.8rem;color:var(--text-secondary);">
+                <i class="bi bi-info-circle-fill" style="color:var(--accent);"></i>
+                Your account will be reviewed by your CDC administrator before you can log in.
+            </div>
+
+            <button type="submit" class="btn-target btn-target-primary w-100 mb-3">
+                <i class="bi bi-person-plus-fill"></i> Register as Reservist
+            </button>
+        </form>
+
+        <div class="text-center" style="font-size:0.85rem;">
+            <span style="color:var(--text-muted);">Already have an account?</span>
+            <a href="{% url 'login' %}">Login here</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── Cascading Address Dropdowns (Region → Province → City → Barangay) ──
+    const regionSel = document.getElementById('addr_region');
+    const provinceSel = document.getElementById('addr_province');
+    const citySel = document.getElementById('addr_city');
+    const barangaySel = document.getElementById('addr_barangay');
+
+    function resetSelect(sel, label) {
+        sel.innerHTML = '<option value="">Select ' + label + '</option>';
+    }
+
+    // Load regions on page load
+    fetch('/references/regions/')
+        .then(r => r.json())
+        .then(data => {
+            data.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                opt.dataset.name = item.name;
+                regionSel.appendChild(opt);
+            });
+        });
+
+    regionSel.addEventListener('change', function () {
+        resetSelect(provinceSel, 'Province');
+        resetSelect(citySel, 'City/Municipality');
+        resetSelect(barangaySel, 'Barangay');
+        if (!this.value) return;
+        // Set the hidden text value
+        this.name = 'region';
+        fetch('/references/provinces/?region_id=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    provinceSel.appendChild(opt);
+                });
+            });
+    });
+
+    provinceSel.addEventListener('change', function () {
+        resetSelect(citySel, 'City/Municipality');
+        resetSelect(barangaySel, 'Barangay');
+        if (!this.value) return;
+        fetch('/references/cities/?province_id=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    citySel.appendChild(opt);
+                });
+            });
+    });
+
+    citySel.addEventListener('change', function () {
+        resetSelect(barangaySel, 'Barangay');
+        if (!this.value) return;
+        fetch('/references/barangays/?city_id=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    barangaySel.appendChild(opt);
+                });
+            });
+    });
+
+    // ── Cascading RCDG → CDC dropdown (from reference models) ──
+    const rcdgSel = document.getElementById('sel_rcdg');
+    const cdcSel = document.getElementById('sel_cdc');
+
+    // Load all RCDGs on page load
+    fetch('/references/rcdgs/')
+        .then(r => r.json())
+        .then(data => {
+            data.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.rcdg_desc;
+                rcdgSel.appendChild(opt);
+            });
+        });
+
+    rcdgSel.addEventListener('change', function () {
+        cdcSel.innerHTML = '<option value="">Select CDC</option>';
+        if (!this.value) return;
+        fetch('/references/cdcs/?rcdg_id=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.cdc_desc || item.cdc_code;
+                    cdcSel.appendChild(opt);
+                });
+            });
+    });
+
+    // Before form submit, replace IDs with text names
+    document.querySelector('form').addEventListener('submit', function () {
+        const replaceWithText = (sel) => {
+            const selected = sel.options[sel.selectedIndex];
+            if (selected && selected.value) {
+                sel.options[sel.selectedIndex].value = selected.textContent;
+            }
+        };
+        replaceWithText(regionSel);
+        replaceWithText(provinceSel);
+        replaceWithText(citySel);
+        replaceWithText(barangaySel);
+        replaceWithText(rcdgSel);
+        replaceWithText(cdcSel);
+    });
+
+</script>
+<script src="{% static 'js/auth-bg.js' %}"></script>
+{% endblock %}

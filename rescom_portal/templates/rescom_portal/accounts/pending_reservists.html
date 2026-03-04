@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Pending Reservist Approvals{% endblock %}
+{% block topbar_title %}Reservist Approval Queue{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in">
+        <h2>Pending Reservist Sign-ups</h2>
+        <p>Review and approve reservist registrations for your Community Defense Center</p>
+    </div>
+
+    {% if pending_users %}
+    <div class="row g-3">
+        {% for user in pending_users %}
+        <div class="col-lg-6 animate-fade-in stagger-{{ forloop.counter }}">
+            <div class="glass-card">
+                <div class="d-flex align-items-start justify-content-between mb-3">
+                    <div>
+                        <h6 style="margin:0;font-weight:700;">{{ user.full_name }}</h6>
+                        <small style="color:var(--text-muted);">@{{ user.username }} · Registered {{
+                            user.date_joined|timesince }} ago</small>
+                    </div>
+                    <span class="badge-status badge-pending">Pending</span>
+                </div>
+
+                <div class="row mb-3" style="font-size:0.85rem;">
+                    <div class="col-6">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Rank</small>
+                        <div>{{ user.rank|default:"—" }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">AFPSN</small>
+                        <div>{{ user.afpsn|default:"—" }}</div>
+                    </div>
+                </div>
+                <div class="row mb-3" style="font-size:0.85rem;">
+                    <div class="col-4">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Region</small>
+                        <div>{{ user.region|default:"—" }}</div>
+                    </div>
+                    <div class="col-4">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Province</small>
+                        <div>{{ user.province|default:"—" }}</div>
+                    </div>
+                    <div class="col-4">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Municipality</small>
+                        <div>{{ user.municipality|default:"—" }}</div>
+                    </div>
+                </div>
+                <div class="row mb-3" style="font-size:0.85rem;">
+                    <div class="col-6">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Unit</small>
+                        <div>{{ user.unit|default:"—" }}</div>
+                    </div>
+                    <div class="col-6">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Mobile</small>
+                        <div>{{ user.mobile_number|default:"—" }}</div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <form method="post" action="{% url approve_url_name user.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-target btn-target-primary"
+                            style="padding:8px 20px;font-size:0.85rem;">
+                            <i class="bi bi-check-circle-fill"></i> Approve
+                        </button>
+                    </form>
+                    <form method="post" action="{% url reject_url_name user.pk %}"
+                        onsubmit="return confirm('Reject and delete {{ user.full_name }}\'s registration?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-target btn-target-danger"
+                            style="padding:8px 20px;font-size:0.85rem;">
+                            <i class="bi bi-x-circle-fill"></i> Reject
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="glass-card animate-fade-in text-center" style="padding:60px 20px;">
+        <i class="bi bi-check2-all" style="font-size:3rem;color:var(--success);display:block;margin-bottom:12px;"></i>
+        <h5 style="font-weight:700;">All Clear!</h5>
+        <p style="color:var(--text-muted);font-size:0.9rem;">No pending reservist registrations to review.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}RCDG Management{% endblock %}
+{% block topbar_title %}RCDG Management{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h2>Regional Community Defense Groups</h2>
+            <p>Manage RCDG reference records</p>
+        </div>
+        <a href="{% url 'ref_rcdg_create' %}" class="btn-target btn-target-primary"
+            style="padding:8px 18px;font-size:0.85rem;">
+            <i class="bi bi-plus-lg"></i> New RCDG
+        </a>
+    </div>
+
+    <!-- Search -->
+    <div class="glass-card animate-fade-in mb-4" style="padding:14px 20px;">
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="q" value="{{ search_query }}" class="form-control"
+                placeholder="Search by description, address, or commander..."
+                style="max-width:400px;font-size:0.85rem;">
+            <button type="submit" class="btn-target btn-target-primary" style="padding:6px 16px;font-size:0.82rem;">
+                <i class="bi bi-search"></i> Search
+            </button>
+            {% if search_query %}
+            <a href="{% url 'ref_rcdg_list' %}" class="btn-target btn-target-outline"
+                style="padding:6px 16px;font-size:0.82rem;">
+                <i class="bi bi-x-lg"></i> Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="glass-card animate-fade-in">
+        <div class="table-responsive">
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Address</th>
+                        <th>Commander</th>
+                        <th>Contact No.</th>
+                        <th>CDCs</th>
+                        <th>Date Encoded</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rcdg in rcdgs %}
+                    <tr>
+                        <td><strong>{{ rcdg.rcdg_desc }}</strong></td>
+                        <td style="font-size:0.82rem;">{{ rcdg.rcdg_address }}</td>
+                        <td style="font-size:0.82rem;">{{ rcdg.rcdg_commander }}</td>
+                        <td style="font-size:0.82rem;">{{ rcdg.cp_no|default:"—" }}</td>
+                        <td>
+                            <span class="badge-status badge-validated">{{ rcdg.cdc_count }}</span>
+                        </td>
+                        <td style="font-size:0.82rem;">{{ rcdg.date_encoded|date:"M d, Y" }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{% url 'ref_rcdg_edit' rcdg.pk %}" class="btn-target btn-target-outline"
+                                    style="padding:4px 10px;font-size:0.75rem;" title="Edit">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                <form method="post" action="{% url 'ref_rcdg_delete' rcdg.pk %}" style="display:inline;"
+                                    onsubmit="return confirm('Delete RCDG {{ rcdg.rcdg_desc }}? All associated CDCs will also be deleted.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-target btn-target-danger"
+                                        style="padding:4px 10px;font-size:0.75rem;" title="Delete">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center" style="color:var(--text-muted);padding:40px;">
+                            <i class="bi bi-building" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+                            {% if search_query %}No RCDG records match "{{ search_query }}"{% else %}No RCDG records
+                            yet.{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

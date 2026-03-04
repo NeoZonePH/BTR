@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ incident.title }}{% endblock %}
+{% block topbar_title %}Incident Details{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <h2 style="margin:0;">{{ incident.title }}</h2>
+                <span class="badge-status badge-{{ incident.status }}" style="font-size:0.82rem;">
+                    {{ incident.get_status_display }}
+                </span>
+                <span class="badge-type badge-{{ incident.incident_type }}" style="font-size:0.82rem;">
+                    {{ incident.get_incident_type_display }}
+                </span>
+            </div>
+            <p style="margin-top:8px;margin-bottom:0;">
+                Reported by {{ incident.reservist.full_name }}
+                on {{ incident.created_at|date:"F d, Y h:i A" }}
+            </p>
+        </div>
+        {% if user == incident.reservist %}
+        <form method="post" action="{% url 'reservist:soft_delete_incident' incident.pk %}"
+            onsubmit="confirmDelete(event, this, 'Are you sure you want to move this incident to the recycle bin?');"
+            style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="btn-target"
+                style="padding:8px 16px;font-size:0.85rem;background:var(--danger);color:white;border:none;">
+                <i class="bi bi-trash-fill"></i> Delete
+            </button>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <!-- Details Card -->
+            <div class="glass-card animate-fade-in mb-4">
+                <h6 style="font-weight:700;margin-bottom:16px;">
+                    <i class="bi bi-info-circle-fill" style="color:var(--accent);"></i> Incident Details
+                </h6>
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Region</small>
+                        <div>{{ incident.region|default:"—" }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Province</small>
+                        <div>{{ incident.province|default:"—" }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Municipality</small>
+                        <div>{{ incident.municipality|default:"—" }}</div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Latitude</small>
+                        <div>{{ incident.latitude }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <small
+                            style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Longitude</small>
+                        <div>{{ incident.longitude }}</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <small
+                        style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Description</small>
+                    <div style="line-height:1.7;margin-top:4px;">{{ incident.description }}</div>
+                </div>
+
+                {% if incident.video_upload %}
+                <div class="mb-3">
+                    <small
+                        style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Evidence</small>
+                    <div class="mt-2">
+                        {% if incident.is_video_evidence %}
+                        <video controls style="max-width:100%;border-radius:var(--radius-sm);">
+                            <source src="{{ incident.video_upload.url }}">
+                        </video>
+                        {% else %}
+                        <img src="{{ incident.video_upload.url }}" alt="Evidence"
+                            style="max-width:100%;border-radius:var(--radius-sm);">
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Status Update (for command roles) -->
+            {% if user.role != 'RESERVIST' %}
+            <div class="glass-card animate-fade-in">
+                <h6 style="font-weight:700;margin-bottom:12px;">
+                    <i class="bi bi-pencil-square" style="color:var(--accent);"></i> Update Status
+                </h6>
+                <form method="post" action="{% url 'reservist:update_incident_status' incident.pk %}"
+                    class="d-flex gap-2">
+                    {% csrf_token %}
+                    <select name="status" class="form-select"
+                        style="background:var(--bg-glass);border:1px solid var(--border-color);color:var(--text-primary);">
+                        {% for choice in status_choices %}
+                        <option value="{{ choice.value }}" {{ choice.selected }}>
+                            {{ choice.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn-target btn-target-primary"
+                        style="white-space:nowrap;">Update</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-5">
+            <!-- Map -->
+            <div class="glass-card animate-fade-in" style="padding:0;overflow:hidden;">
+                <div style="padding:14px 20px;border-bottom:1px solid var(--border-color);">
+                    <h6 style="margin:0;font-weight:700;">
+                        <i class="bi bi-geo-alt-fill" style="color:var(--accent);"></i> Incident Location
+                    </h6>
+                </div>
+                <div id="detailMap" style="height:400px;width:100%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const lat = {{ incident.latitude }};
+    const lng = {{ incident.longitude }};
+
+    const map = new maplibregl.Map({
+        container: 'detailMap',
+        style: {
+            version: 8,
+            sources: {
+                osm: {
+                    type: 'raster',
+                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    attribution: '© OpenStreetMap contributors',
+                },
+            },
+            layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+        },
+        center: [lng, lat],
+        zoom: 14,
+    });
+
+    new maplibregl.Marker({ color: '{{ incident.marker_color }}' })
+        .setLngLat([lng, lat])
+        .setPopup(new maplibregl.Popup().setHTML(
+            '<strong>{{ incident.title|escapejs }}</strong><br>' +
+            '<small>{{ incident.get_incident_type_display }}</small>'
+        ))
+        .addTo(map);
+
+    map.addControl(new maplibregl.NavigationControl());
+</script>
+{% endblock %}

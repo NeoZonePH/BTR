@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}All Incidents{% endblock %}
+{% block topbar_title %}Incident Reports{% endblock %}
+{% block nav_incidents %}active{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h2>All Incidents</h2>
+            <p>Browse and filter incident reports</p>
+        </div>
+        {% if user.role == 'RESERVIST' %}
+        <a href="{% url 'reservist:create_incident' %}" class="btn-target btn-target-primary">
+            <i class="bi bi-plus-lg"></i> New Report
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Filters -->
+    <div class="glass-card mb-4 animate-fade-in">
+        <form method="get" class="d-flex gap-3 flex-wrap align-items-end">
+            <div>
+                <label style="font-size:0.78rem;font-weight:600;color:var(--text-muted);">Type</label>
+                <select name="type" class="form-select form-select-sm"
+                    style="background:var(--bg-glass);border:1px solid var(--border-color);color:var(--text-primary);">
+                    <option value="">All Types</option>
+                    {% for choice in incident_types %}
+                    <option value="{{ choice.value }}" {{ choice.selected }}>
+                        {{ choice.label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="font-size:0.78rem;font-weight:600;color:var(--text-muted);">Status</label>
+                <select name="status" class="form-select form-select-sm"
+                    style="background:var(--bg-glass);border:1px solid var(--border-color);color:var(--text-primary);">
+                    <option value="">All Statuses</option>
+                    {% for choice in statuses %}
+                    <option value="{{ choice.value }}" {{ choice.selected }}>
+                        {{ choice.label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="font-size:0.78rem;font-weight:600;color:var(--text-muted);">Region</label>
+                <input type="text" name="region" class="form-control form-control-sm" placeholder="Search region..."
+                    value="{{ request.GET.region }}"
+                    style="background:var(--bg-glass);border:1px solid var(--border-color);color:var(--text-primary);">
+            </div>
+            <button type="submit" class="btn-target btn-target-outline" style="padding:6px 16px;font-size:0.82rem;">
+                <i class="bi bi-funnel-fill"></i> Filter
+            </button>
+            <a href="{% if user.role == 'RESERVIST' %}{% url 'reservist:incident_list' %}{% else %}{{ request.path }}{% endif %}"
+                class="btn-target btn-target-outline"
+                style="padding:6px 16px;font-size:0.82rem;color:var(--text-muted);border-color:var(--text-muted);">
+                Clear
+            </a>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="glass-card animate-fade-in">
+        <div class="table-responsive">
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Type</th>
+                        <th>Reporter</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for incident in incidents %}
+                    <tr>
+                        <td>
+                            <strong>{{ incident.title }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge-type badge-{{ incident.incident_type }}">
+                                {{ incident.get_incident_type_display }}
+                            </span>
+                        </td>
+                        <td style="font-size:0.82rem;">
+                            {{ incident.reservist.full_name }}
+                        </td>
+                        <td style="font-size:0.82rem;">
+                            {{ incident.municipality }}, {{ incident.province }}
+                        </td>
+                        <td>
+                            <span class="badge-status badge-{{ incident.status }}">
+                                {{ incident.get_status_display }}
+                            </span>
+                        </td>
+                        <td style="font-size:0.82rem;">
+                            {{ incident.created_at|date:"M d, Y" }}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'reservist:incident_detail' incident.pk %}"
+                                    class="btn-target btn-target-outline"
+                                    style="padding:4px 12px;font-size:0.75rem;">View</a>
+                                {% if user == incident.reservist %}
+                                <form method="post" action="{% url 'reservist:soft_delete_incident' incident.pk %}"
+                                    style="margin:0;" onsubmit="confirmDelete(event, this, 'Move to recycle bin?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-target"
+                                        style="padding:4px 12px;font-size:0.75rem;background:var(--danger);color:white;border:none;"
+                                        title="Delete">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center" style="color:var(--text-muted);padding:40px;">
+                            <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+                            No incidents found matching your filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

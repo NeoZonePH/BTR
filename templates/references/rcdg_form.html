@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block topbar_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in">
+        <h2>{{ title }}</h2>
+        <p>{% if rcdg %}Edit RCDG record{% else %}Fill in the details for the new RCDG{% endif %}</p>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="glass-card animate-fade-in">
+                <form method="post" class="glass-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label>RCDG Description <span style="color:#ef4444;">*</span></label>
+                        <input type="text" name="rcdg_desc" class="form-control" required maxlength="20"
+                            value="{{ rcdg.rcdg_desc|default:'' }}" placeholder="e.g. 7RCDG">
+                    </div>
+                    <div class="mb-3">
+                        <label>Address <span style="color:#ef4444;">*</span></label>
+                        <input type="text" name="rcdg_address" class="form-control" required maxlength="200"
+                            value="{{ rcdg.rcdg_address|default:'' }}" placeholder="Full address">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Commander <span style="color:#ef4444;">*</span></label>
+                            <input type="text" name="rcdg_commander" class="form-control" required maxlength="100"
+                                value="{{ rcdg.rcdg_commander|default:'' }}" placeholder="Commander name">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Contact Number</label>
+                            <input type="text" name="cp_no" class="form-control" maxlength="20"
+                                value="{{ rcdg.cp_no|default:'' }}" placeholder="Mobile / phone number">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-5 mb-3">
+                            <label>Latitude</label>
+                            <input type="text" name="latitude" id="latInput" class="form-control" maxlength="50"
+                                value="{{ rcdg.latitude|default:'' }}" placeholder="e.g. 10.3157">
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <label>Longitude</label>
+                            <input type="text" name="longitude" id="lngInput" class="form-control" maxlength="50"
+                                value="{{ rcdg.longitude|default:'' }}" placeholder="e.g. 123.8854">
+                        </div>
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
+                            <button type="button" class="btn-target btn-target-outline w-100" onclick="openMapModal()"
+                                style="padding:8px;font-size:1.1rem;" title="Pick on map">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn-target btn-target-primary">
+                            <i class="bi bi-check-lg"></i> {{ submit_label }}
+                        </button>
+                        <a href="{% url 'ref_rcdg_list' %}" class="btn-target btn-target-outline">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="glass-card animate-fade-in">
+                <h6 style="font-weight:700;margin-bottom:12px;">
+                    <i class="bi bi-info-circle-fill" style="color:var(--accent);"></i> RCDG Info
+                </h6>
+                <ul style="font-size:0.82rem;color:var(--text-secondary);padding-left:18px;margin:0;">
+                    <li>RCDG (Regional Community Defense Group) is a regional military unit</li>
+                    <li>Each RCDG can have multiple CDCs under it</li>
+                    <li>Click the <strong>+</strong> button to pick a location on the map</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Map Modal -->
+<div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content"
+            style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;overflow:hidden;">
+            <div class="modal-header" style="border-bottom:1px solid var(--border-color);padding:16px 20px;">
+                <h6 class="modal-title" style="font-weight:700;"><i class="bi bi-crosshair"
+                        style="color:var(--accent);"></i> Select Location</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:0;">
+                <!-- Search Bar -->
+                <div
+                    style="position:relative;padding:12px 16px;background:var(--bg-glass);border-bottom:1px solid var(--border-color);">
+                    <div style="position:relative;">
+                        <i class="bi bi-search"
+                            style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
+                        <input type="text" id="mapSearchInput" class="form-control" autocomplete="off"
+                            placeholder="Search for a place..."
+                            style="padding-left:36px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-primary);font-size:0.85rem;">
+                    </div>
+                    <div id="searchResults"
+                        style="position:absolute;left:16px;right:16px;top:100%;z-index:999;background:var(--bg-card);border:1px solid var(--border-color);border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;display:none;">
+                    </div>
+                </div>
+                <div id="pickerMap" style="height:420px;width:100%;"></div>
+                <div
+                    style="padding:12px 20px;display:flex;align-items:center;gap:12px;font-size:0.82rem;color:var(--text-muted);">
+                    <i class="bi bi-info-circle-fill" style="color:var(--accent);"></i>
+                    Click on the map to place or move the pin.
+                    <span id="modalCoords"
+                        style="margin-left:auto;font-family:monospace;font-weight:600;color:var(--text-primary);"></span>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--border-color);padding:12px 20px;">
+                <button type="button" class="btn-target btn-target-outline" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn-target btn-target-primary" onclick="confirmLocation()">
+                    <i class="bi bi-check-lg"></i> Confirm Location
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #searchResults .search-item {
+        padding: 10px 14px;
+        cursor: pointer;
+        font-size: 0.82rem;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border-color);
+        transition: background 0.15s;
+    }
+
+    #searchResults .search-item:last-child {
+        border-bottom: none;
+    }
+
+    #searchResults .search-item:hover {
+        background: var(--bg-glass);
+    }
+
+    #searchResults .search-item small {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        margin-top: 2px;
+    }
+</style>
+
+<script>
+    let pickerMap, pickerMarker, pickedLat, pickedLng;
+
+    function openMapModal() {
+        const modal = new bootstrap.Modal(document.getElementById('mapModal'));
+        modal.show();
+
+        document.getElementById('mapModal').addEventListener('shown.bs.modal', function initPicker() {
+            this.removeEventListener('shown.bs.modal', initPicker);
+
+            const existLat = parseFloat(document.getElementById('latInput').value) || 12.8797;
+            const existLng = parseFloat(document.getElementById('lngInput').value) || 121.774;
+            const hasExisting = document.getElementById('latInput').value && document.getElementById('lngInput').value;
+
+            pickerMap = new maplibregl.Map({
+                container: 'pickerMap',
+                style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+                center: [existLng, existLat],
+                zoom: hasExisting ? 12 : 5.5,
+            });
+            pickerMap.addControl(new maplibregl.NavigationControl());
+
+            if (hasExisting) {
+                pickerMarker = new maplibregl.Marker({ color: '#06b6d4', draggable: true })
+                    .setLngLat([existLng, existLat]).addTo(pickerMap);
+                pickedLat = existLat; pickedLng = existLng;
+                document.getElementById('modalCoords').textContent = existLat.toFixed(7) + ', ' + existLng.toFixed(7);
+                pickerMarker.on('dragend', function () {
+                    const ll = pickerMarker.getLngLat();
+                    pickedLat = ll.lat; pickedLng = ll.lng;
+                    document.getElementById('modalCoords').textContent = pickedLat.toFixed(7) + ', ' + pickedLng.toFixed(7);
+                });
+            }
+
+            pickerMap.on('click', function (e) {
+                pickedLat = e.lngLat.lat; pickedLng = e.lngLat.lng;
+                document.getElementById('modalCoords').textContent = pickedLat.toFixed(7) + ', ' + pickedLng.toFixed(7);
+                if (pickerMarker) {
+                    pickerMarker.setLngLat([pickedLng, pickedLat]);
+                } else {
+                    pickerMarker = new maplibregl.Marker({ color: '#06b6d4', draggable: true })
+                        .setLngLat([pickedLng, pickedLat]).addTo(pickerMap);
+                    pickerMarker.on('dragend', function () {
+                        const ll = pickerMarker.getLngLat();
+                        pickedLat = ll.lat; pickedLng = ll.lng;
+                        document.getElementById('modalCoords').textContent = pickedLat.toFixed(7) + ', ' + pickedLng.toFixed(7);
+                    });
+                }
+            });
+        });
+    }
+
+    function confirmLocation() {
+        if (pickedLat !== undefined && pickedLng !== undefined) {
+            document.getElementById('latInput').value = pickedLat.toFixed(7);
+            document.getElementById('lngInput').value = pickedLng.toFixed(7);
+        }
+        bootstrap.Modal.getInstance(document.getElementById('mapModal')).hide();
+    }
+
+    document.getElementById('mapModal').addEventListener('hidden.bs.modal', function () {
+        if (pickerMap) { pickerMap.remove(); pickerMap = null; }
+        pickerMarker = null;
+        document.getElementById('mapSearchInput').value = '';
+        document.getElementById('searchResults').style.display = 'none';
+    });
+
+    // ── Place Search via Nominatim ──
+    let searchTimeout;
+    const searchInput = document.getElementById('mapSearchInput');
+    const searchResults = document.getElementById('searchResults');
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        if (query.length < 3) { searchResults.style.display = 'none'; return; }
+        searchTimeout = setTimeout(function () {
+            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&countrycodes=ph&limit=6&addressdetails=1')
+                .then(r => r.json())
+                .then(data => {
+                    searchResults.innerHTML = '';
+                    if (data.length === 0) {
+                        searchResults.innerHTML = '<div class="search-item" style="color:var(--text-muted);cursor:default;">No results found</div>';
+                        searchResults.style.display = 'block'; return;
+                    }
+                    data.forEach(place => {
+                        const div = document.createElement('div');
+                        div.className = 'search-item';
+                        const name = place.display_name.split(',').slice(0, 3).join(',');
+                        const detail = place.display_name.split(',').slice(3).join(',').trim();
+                        div.innerHTML = '<strong>' + name + '</strong>' + (detail ? '<small>' + detail + '</small>' : '');
+                        div.addEventListener('click', function () {
+                            const lat = parseFloat(place.lat), lng = parseFloat(place.lon);
+                            pickedLat = lat; pickedLng = lng;
+                            document.getElementById('modalCoords').textContent = lat.toFixed(7) + ', ' + lng.toFixed(7);
+                            if (pickerMarker) {
+                                pickerMarker.setLngLat([lng, lat]);
+                            } else {
+                                pickerMarker = new maplibregl.Marker({ color: '#06b6d4', draggable: true })
+                                    .setLngLat([lng, lat]).addTo(pickerMap);
+                                pickerMarker.on('dragend', function () {
+                                    const ll = pickerMarker.getLngLat();
+                                    pickedLat = ll.lat; pickedLng = ll.lng;
+                                    document.getElementById('modalCoords').textContent = pickedLat.toFixed(7) + ', ' + pickedLng.toFixed(7);
+                                });
+                            }
+                            pickerMap.flyTo({ center: [lng, lat], zoom: 15 });
+                            searchResults.style.display = 'none';
+                            searchInput.value = place.display_name.split(',').slice(0, 3).join(',');
+                        });
+                        searchResults.appendChild(div);
+                    });
+                    searchResults.style.display = 'block';
+                })
+                .catch(() => { searchResults.style.display = 'none'; });
+        }, 400);
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('#mapSearchInput') && !e.target.closest('#searchResults')) {
+            searchResults.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

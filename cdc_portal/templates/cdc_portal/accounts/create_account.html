@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+
+{% block title %}Create {{ account_type }} Account{% endblock %}
+{% block topbar_title %}Create {{ account_type_full }} Account{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in">
+        <h2>Create {{ account_type_full }} Account</h2>
+        <p>Fill in the details for the new {{ account_type }} account</p>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="glass-card animate-fade-in">
+                {% if form.errors %}
+                <div class="alert alert-danger mb-3" style="font-size:0.82rem;">
+                    {% for field in form %}
+                    {% for error in field.errors %}
+                    <div><strong>{{ field.label }}:</strong> {{ error }}</div>
+                    {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                    <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post" class="glass-form">
+                    {% csrf_token %}
+
+                    {% if show_role_picker %}
+                    <div class="mb-3">
+                        <label>Account Type</label>
+                        <select name="drrmo_role" class="form-select">
+                            <option value="PDRRMO" {% if current_role == 'PDRRMO' %}selected{% endif %}>Provincial DRRMO
+                            </option>
+                            <option value="MDRRMO" {% if current_role == 'MDRRMO' %}selected{% endif %}>Municipal DRRMO
+                            </option>
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Username</label>
+                            {{ form.username }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Full Name</label>
+                            {{ form.full_name }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Rank</label>
+                            {{ form.rank }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>AFPSN</label>
+                            {{ form.afpsn }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Mobile Number</label>
+                            {{ form.mobile_number }}
+                        </div>
+                        {% if rcdgs %}
+                        <div class="col-md-6 mb-3">
+                            <label>Assigned RCDG</label>
+                            <select name="assigned_rcdg_ref" id="sel_rcdg" class="form-select">
+                                <option value="">Select RCDG</option>
+                                {% for r in rcdgs %}
+                                <option value="{{ r.id }}">{{ r.rcdg_desc }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if show_cdc_dropdown %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Assigned CDC</label>
+                            <select name="assigned_cdc_ref" id="sel_cdc" class="form-select">
+                                <option value="">Select CDC</option>
+                            </select>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Region</label>
+                            <select name="region" id="addr_region" class="form-select" required>
+                                <option value="">Select Region</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Province</label>
+                            <select name="province" id="addr_province" class="form-select" required>
+                                <option value="">Select Province</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>City / Municipality</label>
+                            <select name="municipality" id="addr_city" class="form-select" required>
+                                <option value="">Select City/Municipality</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Barangay</label>
+                            <select name="barangay" id="addr_barangay" class="form-select">
+                                <option value="">Select Barangay</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Password</label>
+                            {{ form.password1 }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Confirm Password</label>
+                            {{ form.password2 }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn-target btn-target-primary">
+                            <i class="bi bi-person-plus-fill"></i> Create Account
+                        </button>
+                        <a href="{% url back_url_name %}" class="btn-target btn-target-outline">
+                            <i class="bi bi-arrow-left"></i> Back
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="glass-card animate-fade-in">
+                <h6 style="font-weight:700;margin-bottom:12px;"><i class="bi bi-info-circle-fill"
+                        style="color:var(--accent);"></i> Account Info</h6>
+                <ul style="font-size:0.82rem;color:var(--text-secondary);padding-left:18px;margin:0;">
+                    <li>This account will be immediately active</li>
+                    <li>The user can log in with the credentials you set</li>
+                    <li>Share the username and password securely</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── Cascading Address Dropdowns (Region → Province → City → Barangay) ──
+    const regionSel = document.getElementById('addr_region');
+    const provinceSel = document.getElementById('addr_province');
+    const citySel = document.getElementById('addr_city');
+    const barangaySel = document.getElementById('addr_barangay');
+
+    function resetSelect(sel, label) {
+        sel.innerHTML = '<option value="">Select ' + label + '</option>';
+    }
+
+    // Load regions on page load
+    fetch('/references/regions/')
+        .then(r => r.json())
+        .then(data => {
+            data.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                regionSel.appendChild(opt);
+            });
+        });
+
+    regionSel.addEventListener('change', function () {
+        resetSelect(provinceSel, 'Province');
+        resetSelect(citySel, 'City/Municipality');
+        resetSelect(barangaySel, 'Barangay');
+        if (!this.value) return;
+        fetch('/references/provinces/?region_id=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    provinceSel.appendChild(opt);
+                });
+            });
+    });
+
+    provinceSel.addEventListener('change', function () {
+        resetSelect(citySel, 'City/Municipality');
+        resetSelect(barangaySel, 'Barangay');
+        if (!this.value) return;
+        fetch('/references/cities/?province_id=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    citySel.appendChild(opt);
+                });
+            });
+    });
+
+    citySel.addEventListener('change', function () {
+        resetSelect(barangaySel, 'Barangay');
+        if (!this.value) return;
+        fetch('/references/barangays/?city_id=' + this.value)
+            .then(r => r.json())
+            .then(data => {
+                data.forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.name;
+                    barangaySel.appendChild(opt);
+                });
+            });
+    });
+
+    // Before form submit, replace IDs with text names
+    document.querySelector('form').addEventListener('submit', function () {
+        const replaceWithText = (sel) => {
+            const selected = sel.options[sel.selectedIndex];
+            if (selected && selected.value) {
+                sel.options[sel.selectedIndex].value = selected.textContent;
+            }
+        };
+        replaceWithText(regionSel);
+        replaceWithText(provinceSel);
+        replaceWithText(citySel);
+        replaceWithText(barangaySel);
+        var rS = document.getElementById('sel_rcdg');
+        var cS = document.getElementById('sel_cdc');
+        if (rS) { var o = rS.options[rS.selectedIndex]; if (o && o.value) o.value = o.textContent.trim(); }
+        if (cS) { var o2 = cS.options[cS.selectedIndex]; if (o2 && o2.value) o2.value = o2.textContent.trim(); }
+    });
+
+    // Cascading RCDG -> CDC dropdown
+    (function() {
+        var rcdgSel = document.getElementById('sel_rcdg');
+        var cdcSel = document.getElementById('sel_cdc');
+        if (rcdgSel && cdcSel) {
+            rcdgSel.addEventListener('change', function() {
+                cdcSel.innerHTML = '<option value="">Select CDC</option>';
+                if (!this.value) return;
+                fetch('/references/cdcs/?rcdg_id=' + this.value)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        data.forEach(function(item) {
+                            var opt = document.createElement('option');
+                            opt.value = item.id;
+                            opt.textContent = item.cdc_desc || item.cdc_code;
+                            cdcSel.appendChild(opt);
+                        });
+                    });
+            });
+        }
+    })();
+</script>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reservist Logs{% endblock %}
+{% block topbar_title %}Reservist Activity Logs{% endblock %}
+{% block nav_reservist_logs %}active{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h2><i class="bi bi-clock-history"></i> Reservist Activity Logs</h2>
+            <p>Track all incident-related actions and logins across the system</p>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="glass-card animate-fade-in">
+        <div class="table-responsive">
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th>Reservist Name</th>
+                        <th>Action</th>
+                        <th>Details</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>
+                            <strong>{{ log.user.full_name }}</strong>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">
+                                {{ log.user.username }}
+                            </div>
+                        </td>
+                        <td>
+                            {% if log.action == 'LOGIN' %}
+                            <span class="badge bg-success">Login</span>
+                            {% elif log.action == 'LOGOUT' %}
+                            <span class="badge bg-secondary">Logout</span>
+                            {% elif log.action == 'CREATE_INCIDENT' %}
+                            <span class="badge bg-primary">Create Incident</span>
+                            {% elif log.action == 'EDIT_INCIDENT' %}
+                            <span class="badge bg-info text-dark">Edit Incident</span>
+                            {% elif log.action == 'DELETE_INCIDENT' %}
+                            <span class="badge bg-danger">Soft Delete</span>
+                            {% elif log.action == 'RESTORE_INCIDENT' %}
+                            <span class="badge bg-warning text-dark">Restored</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ log.get_action_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="font-size:0.85rem; max-width: 300px;">
+                            {{ log.details }}
+                        </td>
+                        <td style="font-size:0.82rem;">
+                            {{ log.created_at|date:"M d, Y h:i A" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center" style="color:var(--text-muted);padding:40px;">
+                            <i class="bi bi-journal-x" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+                            No activity logs found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

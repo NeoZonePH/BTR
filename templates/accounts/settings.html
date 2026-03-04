@@ -1,0 +1,415 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Settings{% endblock %}
+{% block topbar_title %}Account Settings{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in">
+        <h2>Account Settings</h2>
+        <p>Manage your password and headquarters location</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Password Change -->
+        <div class="col-lg-6 animate-fade-in">
+            <div class="glass-card">
+                <h5 style="font-weight:700;margin-bottom:4px;"><i class="bi bi-shield-lock-fill"
+                        style="color:var(--accent);"></i> Change Password</h5>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:20px;">Keep your account secure with a
+                    strong password.</p>
+
+                <form method="post" id="passwordForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="password">
+
+                    <div class="mb-3">
+                        <label style="font-weight:600;font-size:0.82rem;">Current Password</label>
+                        <input type="password" name="current_password" class="form-control" required
+                            placeholder="Enter current password">
+                    </div>
+                    <div class="mb-3">
+                        <label style="font-weight:600;font-size:0.82rem;">New Password</label>
+                        <input type="password" name="new_password1" id="newPass1" class="form-control" required
+                            placeholder="Enter new password" oninput="checkPasswordStrength()">
+                        <div id="strengthMeter" style="margin-top:8px;">
+                            <div style="display:flex;gap:4px;margin-bottom:4px;">
+                                <div class="str-bar" id="str1"></div>
+                                <div class="str-bar" id="str2"></div>
+                                <div class="str-bar" id="str3"></div>
+                                <div class="str-bar" id="str4"></div>
+                            </div>
+                            <small id="strengthText" style="font-size:0.72rem;color:var(--text-muted);"></small>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label style="font-weight:600;font-size:0.82rem;">Confirm New Password</label>
+                        <input type="password" name="new_password2" id="newPass2" class="form-control" required
+                            placeholder="Confirm new password" oninput="checkPasswordMatch()">
+                        <small id="matchText" style="font-size:0.72rem;display:none;margin-top:4px;"></small>
+                    </div>
+                    <button type="submit" class="btn-target btn-target-primary" id="btnChangePass">
+                        <i class="bi bi-check2-circle"></i> Update Password
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Location Settings -->
+        <div class="col-lg-6 animate-fade-in stagger-2">
+            <div class="glass-card">
+                <h5 style="font-weight:700;margin-bottom:4px;"><i class="bi bi-geo-alt-fill"
+                        style="color:var(--warning);"></i> Headquarters Location</h5>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:20px;">Set the position of your command
+                    post on the map.</p>
+
+                <form method="post" id="locationForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="location">
+
+                    <div class="row">
+                        <div class="col-md-5 mb-3">
+                            <label style="font-weight:600;font-size:0.82rem;">Latitude</label>
+                            <input type="number" step="0.0000001" name="latitude" id="latInput" class="form-control"
+                                placeholder="e.g. 14.5995" value="{{ user.ref_latitude|default:'' }}">
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <label style="font-weight:600;font-size:0.82rem;">Longitude</label>
+                            <input type="number" step="0.0000001" name="longitude" id="lngInput" class="form-control"
+                                placeholder="e.g. 120.9842" value="{{ user.ref_longitude|default:'' }}">
+                        </div>
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
+                            <button type="button" class="btn-target btn-target-outline w-100" onclick="openMapModal()"
+                                style="padding:8px;font-size:1.1rem;" title="Pick on map">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mini map preview -->
+                    <div id="previewMap"
+                        style="height:180px;border-radius:10px;margin-bottom:16px;overflow:hidden;border:1px solid var(--border-color);">
+                    </div>
+
+                    <button type="submit" class="btn-target btn-target-primary">
+                        <i class="bi bi-save-fill"></i> Save Location
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Map Modal -->
+<div class="modal fade" id="mapModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content"
+            style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;overflow:hidden;">
+            <div class="modal-header" style="border-bottom:1px solid var(--border-color);padding:16px 20px;">
+                <h6 class="modal-title" style="font-weight:700;"><i class="bi bi-crosshair"
+                        style="color:var(--accent);"></i> Select Location</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:0;">
+                <!-- Search Bar -->
+                <div
+                    style="position:relative;padding:12px 16px;background:var(--bg-glass);border-bottom:1px solid var(--border-color);">
+                    <div style="position:relative;">
+                        <i class="bi bi-search"
+                            style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:0.85rem;"></i>
+                        <input type="text" id="mapSearchInput" class="form-control" autocomplete="off"
+                            placeholder="Search for a place (e.g. Camp Aguinaldo, Manila)..."
+                            style="padding-left:36px;background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-primary);font-size:0.85rem;">
+                    </div>
+                    <div id="searchResults"
+                        style="position:absolute;left:16px;right:16px;top:100%;z-index:999;background:var(--bg-card);border:1px solid var(--border-color);border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;display:none;">
+                    </div>
+                </div>
+                <div id="pickerMap" style="height:420px;width:100%;"></div>
+                <div
+                    style="padding:12px 20px;display:flex;align-items:center;gap:12px;font-size:0.82rem;color:var(--text-muted);">
+                    <i class="bi bi-info-circle-fill" style="color:var(--accent);"></i>
+                    Click on the map to place or move the pin.
+                    <span id="modalCoords"
+                        style="margin-left:auto;font-family:monospace;font-weight:600;color:var(--text-primary);"></span>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--border-color);padding:12px 20px;">
+                <button type="button" class="btn-target btn-target-outline" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn-target btn-target-primary" onclick="confirmLocation()">
+                    <i class="bi bi-check-lg"></i> Confirm Location
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .str-bar {
+        flex: 1;
+        height: 5px;
+        border-radius: 3px;
+        background: var(--border-color);
+        transition: background 0.3s;
+    }
+
+    .str-bar.weak {
+        background: #ef4444;
+    }
+
+    .str-bar.fair {
+        background: #f59e0b;
+    }
+
+    .str-bar.good {
+        background: #22c55e;
+    }
+
+    .str-bar.strong {
+        background: #06b6d4;
+    }
+
+    #searchResults .search-item {
+        padding: 10px 14px;
+        cursor: pointer;
+        font-size: 0.82rem;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border-color);
+        transition: background 0.15s;
+    }
+
+    #searchResults .search-item:last-child {
+        border-bottom: none;
+    }
+
+    #searchResults .search-item:hover {
+        background: var(--bg-glass);
+    }
+
+    #searchResults .search-item small {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        margin-top: 2px;
+    }
+</style>
+
+<script>
+    // ── Password Strength Meter ──
+    function checkPasswordStrength() {
+        const pw = document.getElementById('newPass1').value;
+        let score = 0;
+        if (pw.length >= 8) score++;
+        if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+        if (/[0-9]/.test(pw)) score++;
+        if (/[^a-zA-Z0-9]/.test(pw)) score++;
+
+        const bars = ['str1', 'str2', 'str3', 'str4'];
+        const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+        const levels = ['', 'weak', 'fair', 'good', 'strong'];
+
+        bars.forEach((id, i) => {
+            const el = document.getElementById(id);
+            el.className = 'str-bar' + (i < score ? ' ' + levels[score] : '');
+        });
+
+        const txt = document.getElementById('strengthText');
+        txt.textContent = pw.length > 0 ? labels[score] : '';
+        txt.style.color = score <= 1 ? '#ef4444' : score === 2 ? '#f59e0b' : score === 3 ? '#22c55e' : '#06b6d4';
+
+        checkPasswordMatch();
+    }
+
+    function checkPasswordMatch() {
+        const p1 = document.getElementById('newPass1').value;
+        const p2 = document.getElementById('newPass2').value;
+        const txt = document.getElementById('matchText');
+
+        if (p2.length === 0) { txt.style.display = 'none'; return; }
+        txt.style.display = 'inline-block';
+        if (p1 === p2) {
+            txt.textContent = '✓ Passwords match';
+            txt.style.color = '#22c55e';
+        } else {
+            txt.textContent = '✗ Passwords do not match';
+            txt.style.color = '#ef4444';
+        }
+    }
+
+    // ── Preview Map ──
+    let previewMap, previewMarker;
+    document.addEventListener('DOMContentLoaded', function () {
+        const lat = parseFloat(document.getElementById('latInput').value) || 14.5995;
+        const lng = parseFloat(document.getElementById('lngInput').value) || 120.9842;
+
+        previewMap = new maplibregl.Map({
+            container: 'previewMap',
+            style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+            center: [lng, lat],
+            zoom: 5,
+            interactive: false,
+        });
+
+        if (document.getElementById('latInput').value && document.getElementById('lngInput').value) {
+            previewMarker = new maplibregl.Marker({ color: '#06b6d4' })
+                .setLngLat([lng, lat])
+                .addTo(previewMap);
+            previewMap.setZoom(12);
+        }
+    });
+
+    // ── Map Picker Modal ──
+    let pickerMap, pickerMarker, pickedLat, pickedLng;
+
+    function openMapModal() {
+        const modal = new bootstrap.Modal(document.getElementById('mapModal'));
+        modal.show();
+
+        // Init map after modal shown
+        document.getElementById('mapModal').addEventListener('shown.bs.modal', function initPickerMap() {
+            this.removeEventListener('shown.bs.modal', initPickerMap);
+
+            const existLat = parseFloat(document.getElementById('latInput').value) || 14.5995;
+            const existLng = parseFloat(document.getElementById('lngInput').value) || 120.9842;
+            const hasExisting = document.getElementById('latInput').value && document.getElementById('lngInput').value;
+
+            pickerMap = new maplibregl.Map({
+                container: 'pickerMap',
+                style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+                center: [existLng, existLat],
+                zoom: hasExisting ? 12 : 5.5,
+            });
+
+            pickerMap.addControl(new maplibregl.NavigationControl());
+
+            if (hasExisting) {
+                pickerMarker = new maplibregl.Marker({ color: '#06b6d4', draggable: true })
+                    .setLngLat([existLng, existLat])
+                    .addTo(pickerMap);
+                pickedLat = existLat;
+                pickedLng = existLng;
+                document.getElementById('modalCoords').textContent = existLat.toFixed(7) + ', ' + existLng.toFixed(7);
+
+                pickerMarker.on('dragend', function () {
+                    const lngLat = pickerMarker.getLngLat();
+                    pickedLat = lngLat.lat;
+                    pickedLng = lngLat.lng;
+                    document.getElementById('modalCoords').textContent = pickedLat.toFixed(7) + ', ' + pickedLng.toFixed(7);
+                });
+            }
+
+            pickerMap.on('click', function (e) {
+                pickedLat = e.lngLat.lat;
+                pickedLng = e.lngLat.lng;
+                document.getElementById('modalCoords').textContent = pickedLat.toFixed(7) + ', ' + pickedLng.toFixed(7);
+
+                if (pickerMarker) {
+                    pickerMarker.setLngLat([pickedLng, pickedLat]);
+                } else {
+                    pickerMarker = new maplibregl.Marker({ color: '#06b6d4', draggable: true })
+                        .setLngLat([pickedLng, pickedLat])
+                        .addTo(pickerMap);
+
+                    pickerMarker.on('dragend', function () {
+                        const lngLat = pickerMarker.getLngLat();
+                        pickedLat = lngLat.lat;
+                        pickedLng = lngLat.lng;
+                        document.getElementById('modalCoords').textContent = pickedLat.toFixed(7) + ', ' + pickedLng.toFixed(7);
+                    });
+                }
+            });
+        });
+    }
+
+    function confirmLocation() {
+        if (pickedLat !== undefined && pickedLng !== undefined) {
+            document.getElementById('latInput').value = pickedLat.toFixed(7);
+            document.getElementById('lngInput').value = pickedLng.toFixed(7);
+
+            // Update preview
+            if (previewMarker) {
+                previewMarker.setLngLat([pickedLng, pickedLat]);
+            } else {
+                previewMarker = new maplibregl.Marker({ color: '#06b6d4' })
+                    .setLngLat([pickedLng, pickedLat])
+                    .addTo(previewMap);
+            }
+            previewMap.flyTo({ center: [pickedLng, pickedLat], zoom: 12 });
+        }
+        bootstrap.Modal.getInstance(document.getElementById('mapModal')).hide();
+    }
+
+    // Cleanup picker on modal close
+    document.getElementById('mapModal').addEventListener('hidden.bs.modal', function () {
+        if (pickerMap) { pickerMap.remove(); pickerMap = null; }
+        pickerMarker = null;
+        document.getElementById('mapSearchInput').value = '';
+        document.getElementById('searchResults').style.display = 'none';
+    });
+
+    // ── Place Search via Nominatim ──
+    let searchTimeout;
+    const searchInput = document.getElementById('mapSearchInput');
+    const searchResults = document.getElementById('searchResults');
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        if (query.length < 3) { searchResults.style.display = 'none'; return; }
+
+        searchTimeout = setTimeout(function () {
+            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&countrycodes=ph&limit=6&addressdetails=1')
+                .then(r => r.json())
+                .then(data => {
+                    searchResults.innerHTML = '';
+                    if (data.length === 0) {
+                        searchResults.innerHTML = '<div class="search-item" style="color:var(--text-muted);cursor:default;">No results found</div>';
+                        searchResults.style.display = 'block';
+                        return;
+                    }
+                    data.forEach(place => {
+                        const div = document.createElement('div');
+                        div.className = 'search-item';
+                        const name = place.display_name.split(',').slice(0, 3).join(',');
+                        const detail = place.display_name.split(',').slice(3).join(',').trim();
+                        div.innerHTML = '<strong>' + name + '</strong>' + (detail ? '<small>' + detail + '</small>' : '');
+                        div.addEventListener('click', function () {
+                            const lat = parseFloat(place.lat);
+                            const lng = parseFloat(place.lon);
+                            pickedLat = lat;
+                            pickedLng = lng;
+                            document.getElementById('modalCoords').textContent = lat.toFixed(7) + ', ' + lng.toFixed(7);
+
+                            if (pickerMarker) {
+                                pickerMarker.setLngLat([lng, lat]);
+                            } else {
+                                pickerMarker = new maplibregl.Marker({ color: '#06b6d4', draggable: true })
+                                    .setLngLat([lng, lat])
+                                    .addTo(pickerMap);
+                                pickerMarker.on('dragend', function () {
+                                    const ll = pickerMarker.getLngLat();
+                                    pickedLat = ll.lat; pickedLng = ll.lng;
+                                    document.getElementById('modalCoords').textContent = pickedLat.toFixed(7) + ', ' + pickedLng.toFixed(7);
+                                });
+                            }
+
+                            pickerMap.flyTo({ center: [lng, lat], zoom: 15 });
+                            searchResults.style.display = 'none';
+                            searchInput.value = place.display_name.split(',').slice(0, 3).join(',');
+                        });
+                        searchResults.appendChild(div);
+                    });
+                    searchResults.style.display = 'block';
+                })
+                .catch(() => { searchResults.style.display = 'none'; });
+        }, 400);
+    });
+
+    // Close search results when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('#mapSearchInput') && !e.target.closest('#searchResults')) {
+            searchResults.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

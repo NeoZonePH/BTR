@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage {{ account_type }} Accounts{% endblock %}
+{% block topbar_title %}Manage {{ account_type_full }} Accounts{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h2>{{ account_type_full }} Accounts</h2>
+            <p>Manage {{ account_type }} accounts under your command</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if show_role_picker %}
+            <a href="{% url create_url_name %}?role=PDRRMO" class="btn-target btn-target-primary"
+                style="padding:8px 18px;font-size:0.85rem;">
+                <i class="bi bi-plus-lg"></i> New PDRRMO
+            </a>
+            <a href="{% url create_url_name %}?role=MDRRMO" class="btn-target btn-target-outline"
+                style="padding:8px 18px;font-size:0.85rem;">
+                <i class="bi bi-plus-lg"></i> New MDRRMO
+            </a>
+            {% else %}
+            <a href="{% url create_url_name %}" class="btn-target btn-target-primary"
+                style="padding:8px 18px;font-size:0.85rem;">
+                <i class="bi bi-plus-lg"></i> Create {{ account_type }}
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="glass-card animate-fade-in">
+        <div class="table-responsive">
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th>Full Name</th>
+                        <th>Username</th>
+                        {% if show_role_picker %}<th>Type</th>{% endif %}
+                        <th>Rank</th>
+                        <th>Region</th>
+                        <th>Province</th>
+                        <th>Mobile</th>
+                        <th>Joined</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for account in accounts %}
+                    <tr>
+                        <td><strong>{{ account.full_name }}</strong></td>
+                        <td style="font-size:0.82rem;">{{ account.username }}</td>
+                        {% if show_role_picker %}<td><span class="badge-status badge-validated">{{
+                                account.get_role_display }}</span></td>{% endif %}
+                        <td style="font-size:0.82rem;">{{ account.rank|default:"—" }}</td>
+                        <td style="font-size:0.82rem;">{{ account.region|default:"—" }}</td>
+                        <td style="font-size:0.82rem;">{{ account.province|default:"—" }}</td>
+                        <td style="font-size:0.82rem;">{{ account.mobile_number|default:"—" }}</td>
+                        <td style="font-size:0.82rem;">{{ account.date_joined|date:"M d, Y" }}</td>
+                        <td>
+                            {% if edit_url_name %}
+                            <a href="{% url edit_url_name account.pk %}" class="btn-target btn-target-outline"
+                                style="padding:4px 12px;font-size:0.75rem;margin-right:4px;">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            {% endif %}
+                            <form method="post" action="{% url delete_url_name account.pk %}" style="display:inline;"
+                                onsubmit="return confirm('Delete {{ account.full_name }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-target btn-target-danger"
+                                    style="padding:4px 12px;font-size:0.75rem;">
+                                    <i class="bi bi-trash-fill"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="{% if show_role_picker %}9{% else %}8{% endif %}" class="text-center"
+                            style="color:var(--text-muted);padding:40px;">
+                            <i class="bi bi-people" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+                            No {{ account_type }} accounts created yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
