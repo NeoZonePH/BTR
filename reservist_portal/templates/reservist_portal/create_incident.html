@@ -485,6 +485,7 @@
 
 {% block extra_js %}
 <script src="{% static 'js/geolocation.js' %}"></script>
+<script src="{% static 'js/map.js' %}"></script>
 <script>
     // ── Evidence upload: drag-and-drop + camera (getUserMedia) ──
     (function () {
@@ -950,35 +951,41 @@
         replaceWithText(citySel);
         replaceWithText(barangaySel);
     });
-    // Init location picker map
-    const map = new maplibregl.Map({
+    // Init location picker map (same style options as dashboard)
+    var locationPickerMarker = null;
+    var locationPickerMarkerLngLat = null;
+
+    var map = new maplibregl.Map({
         container: 'locationMap',
-        style: {
-            version: 8,
-            sources: {
-                osm: {
-                    type: 'raster',
-                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                    tileSize: 256,
-                    attribution: '© OpenStreetMap contributors',
-                },
-            },
-            layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
-        },
+        style: typeof MAP_STYLES !== 'undefined' ? MAP_STYLES.dark : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
         center: [121.774, 12.8797],
         zoom: 6,
     });
 
-    let marker = null;
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    map.addControl(new maplibregl.FullscreenControl(), 'top-right');
+    map.addControl(new StyleToggleControl({
+        simple: true,
+        onStyleChanged: function (m) {
+            if (locationPickerMarkerLngLat) {
+                if (locationPickerMarker) locationPickerMarker.remove();
+                locationPickerMarker = new maplibregl.Marker({ color: '#00d4ff' })
+                    .setLngLat(locationPickerMarkerLngLat)
+                    .addTo(m);
+            }
+        }
+    }), 'bottom-left');
 
     map.on('click', function (e) {
-        const { lng, lat } = e.lngLat;
+        var lng = e.lngLat.lng;
+        var lat = e.lngLat.lat;
         document.getElementById('id_latitude').value = lat.toFixed(7);
         document.getElementById('id_longitude').value = lng.toFixed(7);
-        document.getElementById('geoText').textContent = `Location set: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        document.getElementById('geoText').textContent = 'Location set: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
 
-        if (marker) marker.remove();
-        marker = new maplibregl.Marker({ color: '#00d4ff' })
+        if (locationPickerMarker) locationPickerMarker.remove();
+        locationPickerMarkerLngLat = [lng, lat];
+        locationPickerMarker = new maplibregl.Marker({ color: '#00d4ff' })
             .setLngLat([lng, lat])
             .addTo(map);
     });
@@ -987,13 +994,14 @@
     initGeolocation(function (lat, lng) {
         document.getElementById('id_latitude').value = lat;
         document.getElementById('id_longitude').value = lng;
-        document.getElementById('geoText').textContent = `Location detected: ${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}`;
+        document.getElementById('geoText').textContent = 'Location detected: ' + parseFloat(lat).toFixed(5) + ', ' + parseFloat(lng).toFixed(5);
 
-        if (marker) marker.remove();
-        marker = new maplibregl.Marker({ color: '#00d4ff' })
-            .setLngLat([parseFloat(lng), parseFloat(lat)])
+        if (locationPickerMarker) locationPickerMarker.remove();
+        locationPickerMarkerLngLat = [parseFloat(lng), parseFloat(lat)];
+        locationPickerMarker = new maplibregl.Marker({ color: '#00d4ff' })
+            .setLngLat(locationPickerMarkerLngLat)
             .addTo(map);
-        map.flyTo({ center: [parseFloat(lng), parseFloat(lat)], zoom: 14 });
+        map.flyTo({ center: locationPickerMarkerLngLat, zoom: 14 });
     }, function () {
         document.getElementById('geoText').textContent = 'Geolocation denied. Click the map or enter manually.';
         document.getElementById('manualCoords').style.display = 'block';

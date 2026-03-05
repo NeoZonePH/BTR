@@ -170,8 +170,14 @@ function initIncidentMap(containerId, apiUrl) {
 /**
  * MapLibre custom control: Style Toggle (Light / Dark / Satellite / Streets / OSM)
  * Renders inside the map container so it remains visible in fullscreen mode.
+ * @param {Object} [options] - Optional. { simple: true } for location-picker maps (no incident reload).
+ *   When simple, options.onStyleChanged(map) is called after style load so the page can re-add markers.
  */
 class StyleToggleControl {
+    constructor(options) {
+        this._options = options || {};
+    }
+
     onAdd(map) {
         this._map = map;
         this._container = document.createElement('div');
@@ -259,22 +265,25 @@ class StyleToggleControl {
         // Set new style
         this._map.setStyle(MAP_STYLES[styleKey]);
 
-        // Re-add data after style loads
+        const self = this;
         this._map.once('styledata', function () {
-            setTimeout(function () {
-                if (currentApiUrl) loadIncidents(currentApiUrl);
-                const mapEl = document.getElementById('incidentMap');
-                if (mapEl) addHQMarker(mapEl);
-                if (mapEl) addReservistMarker(mapEl);
-                addRcdgMarkers();
-                addCdcMarkers();
-                addReservistListMarkers();
-            }, 200);
+            // Restore camera
+            self._map.setCenter(center);
+            self._map.setZoom(zoom);
+            if (self._options.simple && typeof self._options.onStyleChanged === 'function') {
+                self._options.onStyleChanged(self._map);
+            } else {
+                setTimeout(function () {
+                    if (currentApiUrl) loadIncidents(currentApiUrl);
+                    const mapEl = document.getElementById('incidentMap');
+                    if (mapEl) addHQMarker(mapEl);
+                    if (mapEl) addReservistMarker(mapEl);
+                    addRcdgMarkers();
+                    addCdcMarkers();
+                    addReservistListMarkers();
+                }, 200);
+            }
         });
-
-        // Restore camera
-        this._map.setCenter(center);
-        this._map.setZoom(zoom);
     }
 
     onRemove() {

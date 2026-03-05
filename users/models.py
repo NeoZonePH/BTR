@@ -44,6 +44,7 @@ class User(AbstractUser):
     longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     mobile_number = models.CharField(max_length=20, blank=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.RESERVIST)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
 
     @property
     def ref_latitude(self):

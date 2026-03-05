@@ -137,6 +137,7 @@
 
 {% block extra_js %}
 <script src="{% static 'js/geolocation.js' %}"></script>
+<script src="{% static 'js/map.js' %}"></script>
 <script>
     // ── Cascading Address Dropdowns (Region → Province → City → Barangay) ──
     const regionSel = document.getElementById('sel_region');
@@ -226,21 +227,14 @@
     // Init location picker map
     const map = new maplibregl.Map({
         container: 'locationMap',
-        style: {
-            version: 8,
-            sources: {
-                osm: {
-                    type: 'raster',
-                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                    tileSize: 256,
-                    attribution: '© OpenStreetMap contributors',
-                },
-            },
-            layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
-        },
+        style: MAP_STYLES.dark,
         center: [121.774, 12.8797],
         zoom: 6,
     });
+
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    map.addControl(new maplibregl.FullscreenControl(), 'top-right');
+    map.addControl(new StyleToggleControl(), 'bottom-left');
 
     let marker = null;
 
