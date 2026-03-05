@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from decimal import Decimal, InvalidOperation
+from django.urls import reverse
 
 from .forms import ReservistRegistrationForm, UserLoginForm
 from .models import User, Notification
@@ -158,6 +159,19 @@ def mark_notification_read(request, pk):
     if notification:
         notification.is_read = True
         notification.save()
+        
+        if notification.incident:
+            # Dynamically route to the correct incident detail page based on user role
+            role = request.user.role.lower()
+            try:
+                if role == 'reservist':
+                    url_name = 'reservist:incident_detail'
+                else:
+                    url_name = f'{role}:{role}_incident_detail'
+                return redirect(reverse(url_name, args=[notification.incident.id]))
+            except Exception as e:
+                pass
+
     return redirect(request.META.get('HTTP_REFERER', '/dashboard/'))
 
 

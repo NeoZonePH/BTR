@@ -34,7 +34,7 @@ class Incident(models.Model):
     )
     title = models.CharField(max_length=255)
     description = models.TextField()
-    incident_type = models.CharField(max_length=20, choices=IncidentType.choices)
+    incident_type = models.CharField(max_length=20, choices=IncidentType.choices, db_index=True)
     video_upload = models.FileField(
         upload_to=incident_upload_path, blank=True, null=True,
         validators=[FileExtensionValidator(
@@ -48,8 +48,8 @@ class Incident(models.Model):
     province = models.CharField(max_length=255, blank=True)
     municipality = models.CharField(max_length=255, blank=True)
     barangay = models.CharField(max_length=255, blank=True)
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
-    is_deleted = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
+    is_deleted = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

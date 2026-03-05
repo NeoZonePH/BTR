@@ -16,6 +16,11 @@ DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['*']
 
+# Security Headers (Security Engineer Guidelines)
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',

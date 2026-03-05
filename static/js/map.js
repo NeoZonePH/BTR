@@ -304,7 +304,9 @@ function addHQMarker(container) {
     // Create pulsing marker element
     const el = document.createElement('div');
     el.className = 'hq-marker';
-    el.innerHTML = '<div class="hq-pulse"></div><div class="hq-dot"></div>';
+    el.style.width = '0px';
+    el.style.height = '0px';
+    el.innerHTML = '<div class="hq-dot"></div>';
 
     // Popup
     const popup = new maplibregl.Popup({ offset: 14, maxWidth: '240px' }).setHTML(`
@@ -318,7 +320,7 @@ function addHQMarker(container) {
         </div>
     `);
 
-    hqMarker = new maplibregl.Marker({ element: el })
+    hqMarker = new maplibregl.Marker({ element: el, anchor: 'center' })
         .setLngLat([lng, lat])
         .setPopup(popup)
         .addTo(targetMap);
@@ -340,7 +342,9 @@ function addReservistMarker(container) {
 
     const el = document.createElement('div');
     el.className = 'reservist-marker';
-    el.innerHTML = '<div class="reservist-pulse"></div><div class="reservist-dot"></div>';
+    el.style.width = '0px';
+    el.style.height = '0px';
+    el.innerHTML = '<div class="reservist-dot"></div>';
 
     const popup = new maplibregl.Popup({ offset: 14, maxWidth: '240px' });
     popup.on('open', () => {
@@ -358,7 +362,7 @@ function addReservistMarker(container) {
         `);
     });
 
-    reservistMarker = new maplibregl.Marker({ element: el })
+    reservistMarker = new maplibregl.Marker({ element: el, anchor: 'center' })
         .setLngLat([lng, lat])
         .setPopup(popup)
         .addTo(targetMap);
@@ -380,7 +384,9 @@ function addRcdgMarkers() {
 
         const el = document.createElement('div');
         el.className = 'rcdg-pulse-marker';
-        el.innerHTML = '<div class="rcdg-pulse"></div><div class="rcdg-dot"></div>';
+        el.style.width = '0px';
+        el.style.height = '0px';
+        el.innerHTML = '<div class="rcdg-dot"></div>';
 
         const popup = new maplibregl.Popup({ offset: 14, maxWidth: '260px' }).setHTML(`
             <div style="text-align:center;">
@@ -394,7 +400,7 @@ function addRcdgMarkers() {
             </div>
         `);
 
-        const marker = new maplibregl.Marker({ element: el })
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
             .setLngLat([lng, lat])
             .setPopup(popup)
             .addTo(targetMap);
@@ -418,7 +424,9 @@ function addCdcMarkers() {
 
         const el = document.createElement('div');
         el.className = 'cdc-pulse-marker';
-        el.innerHTML = '<div class="cdc-pulse"></div><div class="cdc-dot"></div>';
+        el.style.width = '0px';
+        el.style.height = '0px';
+        el.innerHTML = '<div class="cdc-dot"></div>';
 
         const popup = new maplibregl.Popup({ offset: 14, maxWidth: '260px' }).setHTML(`
             <div style="text-align:center;">
@@ -433,7 +441,7 @@ function addCdcMarkers() {
             </div>
         `);
 
-        const marker = new maplibregl.Marker({ element: el })
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
             .setLngLat([lng, lat])
             .setPopup(popup)
             .addTo(targetMap);
@@ -458,7 +466,9 @@ function addReservistListMarkers() {
 
         const el = document.createElement('div');
         el.className = 'reservist-list-marker';
-        el.innerHTML = '<div class="reservist-list-pulse"></div><div class="reservist-list-dot"></div>';
+        el.style.width = '0px';
+        el.style.height = '0px';
+        el.innerHTML = '<div class="reservist-list-dot"></div>';
 
         const name = (r.full_name || 'Reservist').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const rank = (r.rank || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -478,7 +488,7 @@ function addReservistListMarkers() {
             `);
         });
 
-        const marker = new maplibregl.Marker({ element: el })
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
             .setLngLat([lng, lat])
             .setPopup(popup)
             .addTo(targetMap);
@@ -536,6 +546,8 @@ function renderMarkers(geojson) {
         // Create pulsing red dot marker
         const el = document.createElement('div');
         el.className = 'incident-pulse-marker';
+        el.style.width = '0px';
+        el.style.height = '0px';
         el.innerHTML = '<div class="inc-pulse"></div><div class="inc-dot"></div>';
         el.style.cursor = 'pointer';
 
@@ -574,7 +586,7 @@ function renderMarkers(geojson) {
             maxWidth: '320px',
         }).setHTML(popupHTML);
 
-        const marker = new maplibregl.Marker({ element: el })
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
             .setLngLat(coords)
             .setPopup(popup)
             .addTo(targetMap);
@@ -583,13 +595,10 @@ function renderMarkers(geojson) {
         bounds.extend(coords);
     });
 
-    // Fit map to markers
-    if (currentMarkers.length > 0) {
-        if (currentMarkers.length === 1) {
-            targetMap.flyTo({ center: geojson.features[0].geometry.coordinates, zoom: 12 });
-        } else {
-            targetMap.fitBounds(bounds, { padding: 60, maxZoom: 14, duration: 1000 });
-        }
+    // Focus map on the latest incident
+    if (geojson.features && geojson.features.length > 0) {
+        const latestIncidentCoords = geojson.features[0].geometry.coordinates;
+        targetMap.flyTo({ center: latestIncidentCoords, zoom: 14, duration: 1500 });
     }
 
     updateIncidentListPanel(geojson.features);

@@ -14,6 +14,19 @@ class IncidentForm(forms.ModelForm):
         widget=forms.HiddenInput(attrs={'id': 'id_longitude'}),
     )
 
+    region = forms.CharField(
+        required=False, widget=forms.Select(attrs={'class': 'form-select', 'id': 'sel_region'})
+    )
+    province = forms.CharField(
+        required=False, widget=forms.Select(attrs={'class': 'form-select', 'id': 'sel_province'})
+    )
+    municipality = forms.CharField(
+        required=False, widget=forms.Select(attrs={'class': 'form-select', 'id': 'sel_city'})
+    )
+    barangay = forms.CharField(
+        required=False, widget=forms.Select(attrs={'class': 'form-select', 'id': 'sel_brgy'})
+    )
+
     class Meta:
         model = Incident
         fields = [
@@ -31,18 +44,6 @@ class IncidentForm(forms.ModelForm):
             'video_upload': forms.ClearableFileInput(attrs={
                 'class': 'form-control', 'accept': 'video/*,image/*',
             }),
-            'region': forms.Select(attrs={
-                'class': 'form-select', 'id': 'sel_region',
-            }, choices=[('', 'Select Region')]),
-            'province': forms.Select(attrs={
-                'class': 'form-select', 'id': 'sel_province',
-            }, choices=[('', 'Select Province')]),
-            'municipality': forms.Select(attrs={
-                'class': 'form-select', 'id': 'sel_city',
-            }, choices=[('', 'Select City/Municipality')]),
-            'barangay': forms.Select(attrs={
-                'class': 'form-select', 'id': 'sel_brgy',
-            }, choices=[('', 'Select Barangay')]),
         }
 
     def clean_video_upload(self):

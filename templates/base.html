@@ -31,6 +31,7 @@
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/marker-wrapper.css' %}">
 
   {% block extra_head %}{% endblock %}
 </head>
@@ -380,6 +381,33 @@
       })
     }
   </script>
+
+  <!-- Global SweetAlert Message Handler -->
+  {% if messages %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      {% for message in messages %}
+      var iconType = 'info';
+      {% if message.tags == 'success' %} iconType = 'success';
+      {% elif message.tags == 'error' %} iconType = 'error';
+      {% elif message.tags == 'warning' %} iconType = 'warning';
+      {% endif %}
+
+      Swal.fire({
+        title: iconType.charAt(0).toUpperCase() + iconType.slice(1) + '!',
+        text: "{{ message|escapejs }}",
+        icon: iconType,
+        timer: 3000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        background: 'var(--bg-glass)',
+        color: 'var(--text-primary)',
+        customClass: { popup: 'glass-card' }
+      });
+      {% endfor %}
+    });
+  </script>
+  {% endif %}
 
   {% block extra_js %}{% endblock %}
 </body>

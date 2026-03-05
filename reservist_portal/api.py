@@ -40,7 +40,7 @@ def _start_of_year():
 @permission_classes([IsAuthenticated])
 def incidents_geojson(request):
     """Return incidents in GeoJSON format for map rendering."""
-    incidents = Incident.objects.filter(is_deleted=False)
+    incidents = Incident.objects.select_related('reservist').filter(is_deleted=False)
 
     # Time filters: use start of period so "Today" = only today's incidents, not last 24h
     time_filter = request.query_params.get('time')
@@ -98,7 +98,7 @@ def incidents_geojson(request):
                 'longitude': str(inc.longitude),
                 'marker_color': inc.marker_color,
                 'reporter': inc.reservist.full_name,
-                'created_at': inc.created_at.strftime('%b %d, %Y %I:%M %p'),
+                'created_at': timezone.localtime(inc.created_at).strftime('%b %d, %Y %I:%M %p'),
                 'detail_url': f'/{role_prefix}/incidents/{inc.id}/',
             },
         })
