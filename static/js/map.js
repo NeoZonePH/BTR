@@ -136,6 +136,7 @@ function initIncidentMap(containerId, apiUrl) {
     targetMap.addControl(new maplibregl.FullscreenControl(), 'top-right');
     targetMap.addControl(new IncidentListControl(), 'top-left');
     targetMap.addControl(new StyleToggleControl(), 'bottom-left');
+    targetMap.addControl(new MapLegendControl(), 'bottom-right');
 
     // Hide the external HTML toggle since it's now inside the map
     const externalToggle = document.getElementById('mapStyleToggle');
@@ -288,6 +289,70 @@ class StyleToggleControl {
                 }, 200);
             }
         });
+    }
+
+    onRemove() {
+        if (this._container && this._container.parentNode) {
+            this._container.parentNode.removeChild(this._container);
+        }
+        this._map = undefined;
+    }
+}
+
+/**
+ * MapLibre custom control: Markers legend for incident map.
+ * Shown on all account dashboards (reservist, RESCOM, RCDG, CDC, PDRRMO, MDRRMO).
+ */
+class MapLegendControl {
+    onAdd(map) {
+        this._map = map;
+        this._container = document.createElement('div');
+        this._container.className = 'maplibregl-ctrl map-legend-ctrl';
+        this._container.setAttribute('aria-label', 'Map legend');
+
+        const items = [
+            { color: '#ef4444', label: 'Incident' },
+            { color: '#06b6d4', label: 'Headquarters' },
+            { color: '#3b82f6', label: 'My location / Reservist home' },
+            { color: '#22c55e', label: 'RCDG' },
+            { color: '#a855f7', label: 'CDC' },
+            { color: '#f59e0b', label: 'Responder (en route)' },
+        ];
+
+        let html = '<div class="map-legend-inner">';
+        html += '<div class="map-legend-title">Legend</div>';
+        items.forEach((item) => {
+            html += `<div class="map-legend-row"><span class="map-legend-dot" style="background:${item.color}"></span><span class="map-legend-label">${item.label}</span></div>`;
+        });
+        html += '</div>';
+        this._container.innerHTML = html;
+
+        if (!document.getElementById('mapLegendCtrlCSS')) {
+            const css = document.createElement('style');
+            css.id = 'mapLegendCtrlCSS';
+            css.textContent = `
+                .map-legend-ctrl {
+                    background: rgba(10, 14, 23, 0.92);
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    border-radius: 10px;
+                    padding: 10px 12px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+                    pointer-events: auto;
+                    margin: 10px;
+                }
+                .map-legend-inner { font-size: 0.75rem; color: rgba(255,255,255,0.95); }
+                .map-legend-title { font-weight: 700; margin-bottom: 8px; color: #e2e8f0; }
+                .map-legend-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+                .map-legend-row:last-child { margin-bottom: 0; }
+                .map-legend-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; flex-shrink: 0; }
+                .map-legend-label { white-space: nowrap; }
+            `;
+            document.head.appendChild(css);
+        }
+
+        return this._container;
     }
 
     onRemove() {
