@@ -48,20 +48,30 @@ class User(AbstractUser):
 
     @property
     def ref_latitude(self):
-        """Return reference latitude if RCDG/CDC, else User latitude."""
+        """Return a role-appropriate reference latitude for maps and responder fallback."""
         if self.role == self.Role.RCDG and self.assigned_rcdg and self.assigned_rcdg.latitude:
             return float(self.assigned_rcdg.latitude)
         if self.role == self.Role.CDC and self.assigned_cdc and self.assigned_cdc.latitude:
             return float(self.assigned_cdc.latitude)
+        if self.role in (self.Role.PDRRMO, self.Role.MDRRMO):
+            if self.latitude is not None:
+                return self.latitude
+            if self.assigned_cdc and self.assigned_cdc.latitude:
+                return float(self.assigned_cdc.latitude)
         return self.latitude
 
     @property
     def ref_longitude(self):
-        """Return reference longitude if RCDG/CDC, else User longitude."""
+        """Return a role-appropriate reference longitude for maps and responder fallback."""
         if self.role == self.Role.RCDG and self.assigned_rcdg and self.assigned_rcdg.longitude:
             return float(self.assigned_rcdg.longitude)
         if self.role == self.Role.CDC and self.assigned_cdc and self.assigned_cdc.longitude:
             return float(self.assigned_cdc.longitude)
+        if self.role in (self.Role.PDRRMO, self.Role.MDRRMO):
+            if self.longitude is not None:
+                return self.longitude
+            if self.assigned_cdc and self.assigned_cdc.longitude:
+                return float(self.assigned_cdc.longitude)
         return self.longitude
 
     # Organizational hierarchy links (reference models)

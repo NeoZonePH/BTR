@@ -349,9 +349,11 @@ function addReservistMarker(container) {
         reservistMarker = null;
     }
 
-    const lat = parseFloat(container.dataset.reservistLat);
-    const lng = parseFloat(container.dataset.reservistLng);
+    const lat = parseFloat(container.dataset.reservistLat || container.dataset.userLat);
+    const lng = parseFloat(container.dataset.reservistLng || container.dataset.userLng);
     if (isNaN(lat) || isNaN(lng)) return;
+    const locationLabel = window.__USER_LOCATION_LABEL__ || 'My Home Address';
+    const roleLabel = window.__USER_ROLE_LABEL__ || 'Reservist';
 
     const el = document.createElement('div');
     el.className = 'reservist-marker';
@@ -365,8 +367,8 @@ function addReservistMarker(container) {
         popup.setHTML(`
             <div style="text-align:center;">
                 <div style="font-size:1.2rem;margin-bottom:4px;">📍</div>
-                <div style="font-weight:700;font-size:0.88rem;">My Home Address</div>
-                <div style="font-size:0.72rem;color:#94a3b8;">Reservist</div>
+                <div style="font-weight:700;font-size:0.88rem;">${locationLabel}</div>
+                <div style="font-size:0.72rem;color:#94a3b8;">${roleLabel}</div>
                 <div style="font-size:0.7rem;color:#64748b;margin-top:4px;font-family:monospace;">
                     ${lat.toFixed(7)}, ${lng.toFixed(7)}
                 </div>
@@ -803,6 +805,63 @@ let currentRespondingIncidentId = null; // Which incident the current user is re
 let activeResponderMarkers = {}; // Store by reservist_id to handle multiple responders
 let lastResponderCoords = null;
 
+function getResponderMarkerDisplayCoords(lat, lng, index, total) {
+    if (total <= 1) {
+        return [lng, lat];
+    }
+
+    // Spread responders with the same coordinates into a small circle so
+    // command dashboards can still see each active responder separately.
+    const radiusDegrees = 0.00018;
+    const angle = (Math.PI * 2 * index) / total;
+    const latOffset = radiusDegrees * Math.sin(angle);
+    const lngScale = Math.max(Math.cos((lat * Math.PI) / 180), 0.2);
+    const lngOffset = (radiusDegrees * Math.cos(angle)) / lngScale;
+
+    return [lng + lngOffset, lat + latOffset];
+}
+
+function refreshResponderMarkerPositions() {
+    const markers = Object.values(activeResponderMarkers).filter(Boolean);
+    if (!markers.length) return;
+
+    const groups = {};
+    markers.forEach((marker) => {
+        const data = marker.__responderData;
+        if (!data) return;
+        const key = `${data.latitude.toFixed(5)}:${data.longitude.toFixed(5)}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(marker);
+    });
+
+    Object.values(groups).forEach((group) => {
+        group.forEach((marker, index) => {
+            const data = marker.__responderData;
+            if (!data) return;
+            const displayCoords = getResponderMarkerDisplayCoords(
+                data.latitude,
+                data.longitude,
+                index,
+                group.length
+            );
+            marker.setLngLat(displayCoords);
+        });
+    });
+}
+
+function getResponderFallbackCoords() {
+    const mapEl = document.getElementById('incidentMap');
+    if (!mapEl) return null;
+
+    const lat = parseFloat(mapEl.dataset.userLat);
+    const lng = parseFloat(mapEl.dataset.userLng);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        return { lat, lng, source: 'saved account location' };
+    }
+
+    return null;
+}
+
 /** Remove a single responder's marker and route from the map (e.g. when they click Stop). */
 function removeResponderMarker(reservistId) {
     if (!targetMap || !reservistId) return;
@@ -815,6 +874,7 @@ function removeResponderMarker(reservistId) {
     const routeId = 'route_' + rid;
     if (targetMap.getLayer(routeId)) targetMap.removeLayer(routeId);
     if (targetMap.getSource(routeId)) targetMap.removeSource(routeId);
+    refreshResponderMarkerPositions();
 }
 
 /** Remove all responder markers and their route layers so they can be repopulated (e.g. after filter change or load). */
@@ -870,8 +930,10 @@ function startResponding(event, incidentId) {
         event.stopPropagation();
     }
 
-    if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
+    const fallbackCoords = getResponderFallbackCoords();
+
+    if (!navigator.geolocation && !fallbackCoords) {
+        alert("Geolocation is not supported by your browser, and no saved account location is available.");
         return;
     }
 
@@ -1003,53 +1065,87 @@ function startResponding(event, incidentId) {
             .catch(err => console.error("Error updating location:", err));
     }
 
-    // Get initial position so the marker appears right away (watchPosition may take a moment)
-    navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            syncResponderPosition(lat, lng, true);
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-    );
-
-    // Start GPS watch so marker moves as you move
-    activeWatchId = navigator.geolocation.watchPosition(
-        (position) => {
-            const lat = position.coords.latitude;
-            const lng = position.coords.longitude;
-            syncResponderPosition(lat, lng);
-        },
-        (error) => {
-            console.error("Geolocation error:", error);
-            alert("Error getting location. Ensure location permissions are enabled.");
+    function useFallbackLocation(message) {
+        if (!fallbackCoords) {
+            alert(message || "Error getting location. Ensure location permissions are enabled.");
             stopResponding();
             if (event && event.target) {
                 event.target.textContent = "Respond 🏃";
                 event.target.disabled = false;
                 event.target.style.background = 'linear-gradient(135deg,#10b981,#059669)';
             }
-        },
-        {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
+            return false;
         }
-    );
 
-    // Fallback polling keeps live movement reliable on browsers/devices where watchPosition is sparse.
-    activeLocationPollId = window.setInterval(() => {
+        console.warn(message || "Using fallback responder location.");
+        syncResponderPosition(fallbackCoords.lat, fallbackCoords.lng, true);
+
+        if (event && event.target) {
+            event.target.textContent = "Responding 🏃";
+            event.target.disabled = true;
+            event.target.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+            event.target.title = 'Using saved account location because browser location is unavailable.';
+        }
+
+        return true;
+    }
+
+    // Get initial position so the marker appears right away (watchPosition may take a moment)
+    if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                syncResponderPosition(lat, lng, true);
+            },
+            () => {
+                useFallbackLocation("Initial browser location unavailable. Using saved account location instead.");
+            },
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+
+        // Start GPS watch so marker moves as you move
+        activeWatchId = navigator.geolocation.watchPosition(
             (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
                 syncResponderPosition(lat, lng);
             },
-            () => {},
-            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            (error) => {
+                console.error("Geolocation error:", error);
+                if (useFallbackLocation("Browser location permission denied or unavailable. Using saved account location instead.")) {
+                    if (activeWatchId) {
+                        navigator.geolocation.clearWatch(activeWatchId);
+                        activeWatchId = null;
+                    }
+                    if (activeLocationPollId) {
+                        window.clearInterval(activeLocationPollId);
+                        activeLocationPollId = null;
+                    }
+                }
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
         );
-    }, 3000);
+
+        // Fallback polling keeps live movement reliable on browsers/devices where watchPosition is sparse.
+        activeLocationPollId = window.setInterval(() => {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    syncResponderPosition(lat, lng);
+                },
+                () => {},
+                { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            );
+        }, 3000);
+    } else {
+        useFallbackLocation("Browser geolocation is not supported. Using saved account location instead.");
+    }
 }
 
 function stopResponding() {
@@ -1133,6 +1229,7 @@ function updateResponderOnMap(data, drawRoute = false) {
 
     const lng = parseFloat(data.longitude);
     const lat = parseFloat(data.latitude);
+    if (Number.isNaN(lat) || Number.isNaN(lng)) return;
     const coords = [lng, lat];
     const rid = data.reservist_id;
     const distText = getDistanceToIncident(lat, lng, data.incident_id) || '';
@@ -1220,8 +1317,17 @@ function updateResponderOnMap(data, drawRoute = false) {
         activeResponderMarkers[rid] = new maplibregl.Marker({ element: el, anchor: 'center' })
             .setLngLat(coords)
             .addTo(targetMap);
+        activeResponderMarkers[rid].__responderData = {
+            latitude: lat,
+            longitude: lng,
+            incidentId: String(data.incident_id || ''),
+        };
     } else {
-        activeResponderMarkers[rid].setLngLat(coords);
+        activeResponderMarkers[rid].__responderData = {
+            latitude: lat,
+            longitude: lng,
+            incidentId: String(data.incident_id || ''),
+        };
 
         const el = activeResponderMarkers[rid].getElement();
         if (el) {
@@ -1233,6 +1339,8 @@ function updateResponderOnMap(data, drawRoute = false) {
             }
         }
     }
+
+    refreshResponderMarkerPositions();
 
     if (drawRoute) {
         drawRouteToIncident(coords, data.incident_id, rid);

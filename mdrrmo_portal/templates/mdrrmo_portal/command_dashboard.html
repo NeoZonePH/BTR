@@ -167,6 +167,8 @@
     window.__CAN_RESPOND_TO_INCIDENT__ = true;  /* MDRRMO can respond to incidents; multiple responders supported */
     window.__USER_ID__ = '{{ request.user.id }}';
     window.__USER_NAME__ = "{{ request.user.full_name|escapejs }}";
+    window.__USER_ROLE_LABEL__ = 'MDRRMO';
+    window.__USER_LOCATION_LABEL__ = 'My Response Location';
 </script>
 <script src="{% static 'js/map.js' %}"></script>
 <script src="{% static 'js/charts.js' %}"></script>

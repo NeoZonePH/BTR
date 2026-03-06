@@ -746,7 +746,10 @@
                     .then(function (data) {
                         var improved = (data.improved != null ? String(data.improved) : '').trim();
                         textarea.value = improved;
+                        textarea.dispatchEvent(new Event('input', { bubbles: true }));
                         if (typeof updateImproveButtonState === 'function') updateImproveButtonState();
+                        textarea.focus();
+                        textarea.setSelectionRange(improved.length, improved.length);
                         var hintEl = document.getElementById('descriptionAiHint');
                         if (hintEl) {
                             if (data.unchanged) {

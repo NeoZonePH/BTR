@@ -265,7 +265,7 @@ def suggest_incident_description(text):
 def improve_incident_description(text):
     """
     Return a single improved version of the full incident description:
-    correct spelling and grammar, improve clarity and structure, keep the same meaning.
+    grammar, clarity of thought, correct sentence usage, and professional tone.
     Returns the improved string, or the original if API fails.
     """
     text = (text or '').strip()
@@ -277,10 +277,15 @@ def improve_incident_description(text):
         return text
 
     system = (
-        "You are a professional editor for emergency incident reports in the Philippines. "
-        "Rewrite the user's incident description to fix spelling and grammar, improve clarity and flow, "
-        "and make it more professional. Keep the same facts and meaning; only improve wording. "
-        "Output only the improved description text, nothing else."
+        "You are a professional editor for government emergency incident reports in the Philippines. "
+        "Rewrite the user's incident description so that it is clear, correct, and professional. "
+        "You MUST: "
+        "(1) Fix all grammar: spelling, punctuation, verb tense, subject-verb agreement, and word choice. "
+        "(2) Improve thought and clarity: organize ideas logically, make the narrative coherent, and ensure each sentence conveys a clear point. "
+        "(3) Use correct sentence structure: complete sentences only, no run-ons or fragments; proper capitalization and punctuation. "
+        "(4) Make the tone professional: formal, factual, and suitable for an official incident report (no slang or casual phrasing). "
+        "Keep the same facts and meaning; only improve grammar, thought, sentence usage, and professionalism. "
+        "Output ONLY the improved description text—no preamble, no labels, no extra commentary."
     )
     user = f"Incident description to improve:\n\n{text}"
 
