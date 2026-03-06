@@ -6,62 +6,84 @@
 {% block nav_analytics %}active{% endblock %}
 
 {% block content %}
-<div class="page-content">
-    <div class="page-header animate-fade-in">
-        <h2>Analytics Dashboard</h2>
-        <p>AI-powered incident analysis and trend detection</p>
-    </div>
-
-    <!-- Time Range Selector -->
-    <div class="glass-card mb-4 animate-fade-in" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <span style="font-weight:600;font-size:0.85rem;">Time Range:</span>
-        <div class="btn-group">
-            <button class="btn-target btn-target-outline range-btn active" data-range="day"
-                style="padding:6px 16px;font-size:0.8rem;">Day</button>
-            <button class="btn-target btn-target-outline range-btn" data-range="week"
-                style="padding:6px 16px;font-size:0.8rem;">Week</button>
-            <button class="btn-target btn-target-outline range-btn" data-range="month"
-                style="padding:6px 16px;font-size:0.8rem;">Month</button>
-            <button class="btn-target btn-target-outline range-btn" data-range="year"
-                style="padding:6px 16px;font-size:0.8rem;">Year</button>
+<div class="page-content analytics-page">
+    <div class="page-header analytics-header animate-fade-in">
+        <div>
+            <div class="analytics-eyebrow">AI Command Center</div>
+            <h2>Analytics Dashboard</h2>
+            <p>Ultra-clear incident intelligence, trend monitoring, and AI-generated operational insights.</p>
         </div>
-        <span id="totalCount" style="margin-left:auto;font-weight:700;font-size:1.1rem;color:var(--accent);">—</span>
-        <span style="font-size:0.82rem;color:var(--text-muted);">total incidents</span>
+        <div class="analytics-header-badge">
+            <i class="bi bi-stars"></i>
+            <span>Professional AI Insights</span>
+        </div>
     </div>
 
-    <!-- Charts Grid -->
+    <div class="glass-card analytics-toolbar animate-fade-in">
+        <div class="toolbar-copy">
+            <span class="toolbar-label">Time Range</span>
+            <strong>Switch the reporting window instantly</strong>
+        </div>
+        <div class="analytics-range-group" role="group" aria-label="Analytics range selector">
+            <button class="btn-target btn-target-outline range-btn active" data-range="day">Day</button>
+            <button class="btn-target btn-target-outline range-btn" data-range="week">Week</button>
+            <button class="btn-target btn-target-outline range-btn" data-range="month">Month</button>
+            <button class="btn-target btn-target-outline range-btn" data-range="year">Year</button>
+        </div>
+        <div class="analytics-total-card">
+            <span class="total-label">Tracked incidents</span>
+            <span id="totalCount" class="total-value">—</span>
+        </div>
+    </div>
+
     <div class="row g-3 mb-4">
-        <div class="col-lg-6 animate-fade-in stagger-1">
-            <div class="glass-card">
-                <h6 style="font-weight:700;margin-bottom:12px;"><i class="bi bi-graph-up"
-                        style="color:var(--accent);"></i> Daily Trend</h6>
+        <div class="col-xl-6 animate-fade-in stagger-1">
+            <div class="glass-card analytics-chart-card">
+                <div class="chart-head">
+                    <div>
+                        <span class="chart-kicker"><i class="bi bi-activity"></i> Operational Pulse</span>
+                        <h6>Daily Trend</h6>
+                    </div>
+                </div>
                 <div class="chart-container">
                     <canvas id="dailyChart"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-lg-6 animate-fade-in stagger-2">
-            <div class="glass-card">
-                <h6 style="font-weight:700;margin-bottom:12px;"><i class="bi bi-pie-chart-fill"
-                        style="color:var(--accent);"></i> By Incident Type</h6>
+        <div class="col-xl-6 animate-fade-in stagger-2">
+            <div class="glass-card analytics-chart-card">
+                <div class="chart-head">
+                    <div>
+                        <span class="chart-kicker"><i class="bi bi-grid-3x3-gap-fill"></i> Distribution</span>
+                        <h6>By Incident Type</h6>
+                    </div>
+                </div>
                 <div class="chart-container">
                     <canvas id="typeChart"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-lg-6 animate-fade-in stagger-3">
-            <div class="glass-card">
-                <h6 style="font-weight:700;margin-bottom:12px;"><i class="bi bi-map-fill"
-                        style="color:var(--accent);"></i> By Region</h6>
+        <div class="col-xl-6 animate-fade-in stagger-3">
+            <div class="glass-card analytics-chart-card">
+                <div class="chart-head">
+                    <div>
+                        <span class="chart-kicker"><i class="bi bi-geo-alt-fill"></i> Geography</span>
+                        <h6>By Region</h6>
+                    </div>
+                </div>
                 <div class="chart-container">
                     <canvas id="regionChart"></canvas>
                 </div>
             </div>
         </div>
-        <div class="col-lg-6 animate-fade-in stagger-4">
-            <div class="glass-card">
-                <h6 style="font-weight:700;margin-bottom:12px;"><i class="bi bi-check2-circle"
-                        style="color:var(--accent);"></i> By Status</h6>
+        <div class="col-xl-6 animate-fade-in stagger-4">
+            <div class="glass-card analytics-chart-card">
+                <div class="chart-head">
+                    <div>
+                        <span class="chart-kicker"><i class="bi bi-shield-check"></i> Readiness</span>
+                        <h6>By Status</h6>
+                    </div>
+                </div>
                 <div class="chart-container">
                     <canvas id="statusChart"></canvas>
                 </div>
@@ -69,43 +91,90 @@
         </div>
     </div>
 
-    <!-- AI Summary Section -->
-    <div class="glass-card animate-fade-in">
-        <div
-            style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
-            <h6 style="margin:0;font-weight:700;"><i class="bi bi-robot" style="color:var(--accent);"></i> AI-Generated
-                Summary</h6>
-            <div class="d-flex gap-2">
-                <select id="summaryPeriod" class="form-select form-select-sm"
-                    style="width:auto;font-size:0.8rem;background:var(--bg-glass);border:1px solid var(--border-color);color:var(--text-primary);">
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly" selected>Monthly</option>
-                    <option value="yearly">Yearly</option>
-                </select>
-                <button id="generateSummaryBtn" class="btn-target btn-target-primary"
-                    style="padding:6px 16px;font-size:0.82rem;">
-                    <i class="bi bi-stars"></i> Generate
-                </button>
+    <div class="glass-card ai-insights-shell animate-fade-in">
+        <div class="ai-insights-header">
+            <div>
+                <span class="analytics-eyebrow">AI Analysis & Insights</span>
+                <h3>Executive-grade situational analysis</h3>
+                <p>Generate concise summaries that highlight trends, priority signals, and response patterns for the selected reporting period.</p>
+            </div>
+            <div class="ai-insights-chip">
+                <i class="bi bi-cpu-fill"></i>
+                <span>Live AI Narrative</span>
             </div>
         </div>
 
-        <div id="aiSummaryContent" class="ai-summary-box">
-            <div class="summary-header"><i class="bi bi-lightbulb-fill"></i> Summary</div>
-            <div class="summary-text">
-                {% for summary in latest_summaries %}
-                <div class="mb-3 pb-3" style="border-bottom:1px solid var(--border-color);">
-                    <strong>
-                        {{ summary.get_period_display }} —
-                        {{ summary.period_start|date:"M d" }} to
-                        {{ summary.period_end|date:"M d, Y" }}
-                    </strong><br>
-                    {{ summary.summary_text }}
+        <div class="row g-4 align-items-stretch">
+            <div class="col-xl-4">
+                <div class="ai-control-panel">
+                    <div class="ai-control-icon">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <span class="toolbar-label">Generate briefing</span>
+                    <h4>Refresh strategic insight cards</h4>
+                    <p>Choose the reporting period and generate a polished AI summary tailored to the latest incident patterns.</p>
+
+                    <div class="ai-form-stack">
+                        <label for="summaryPeriod" class="ai-field-label">Insight period</label>
+                        <select id="summaryPeriod" class="form-select ai-select">
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly" selected>Monthly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
+
+                    <button id="generateSummaryBtn" class="btn-target btn-target-primary ai-generate-btn">
+                        <i class="bi bi-stars"></i> Generate AI Analysis
+                    </button>
+
+                    <div class="ai-note-grid">
+                        <div class="ai-note-card">
+                            <span>Output</span>
+                            <strong>Readable command brief</strong>
+                        </div>
+                        <div class="ai-note-card">
+                            <span>Focus</span>
+                            <strong>Trend and risk signals</strong>
+                        </div>
+                    </div>
                 </div>
-                {% empty %}
-                <span style="color:var(--text-muted);">No AI summaries generated yet. Click "Generate" to create your
-                    first analysis.</span>
-                {% endfor %}
+            </div>
+
+            <div class="col-xl-8">
+                <div id="aiSummaryContent" class="ai-summary-panel">
+                    <div class="ai-summary-head">
+                        <div>
+                            <span class="toolbar-label">Insight feed</span>
+                            <h4>Generated analysis timeline</h4>
+                        </div>
+                        <div class="ai-summary-status">
+                            <i class="bi bi-lightbulb-fill"></i>
+                            <span>Latest intelligence</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-text ai-summary-feed">
+                        {% for summary in latest_summaries %}
+                        <article class="ai-summary-entry">
+                            <div class="ai-summary-entry-head">
+                                <div>
+                                    <span class="ai-summary-period">{{ summary.get_period_display }}</span>
+                                    <strong>{{ summary.period_start|date:"M d" }} to {{ summary.period_end|date:"M d, Y" }}</strong>
+                                </div>
+                                <span class="ai-summary-badge"><i class="bi bi-stars"></i> Generated</span>
+                            </div>
+                            <div class="ai-summary-body">{{ summary.summary_text|linebreaksbr }}</div>
+                        </article>
+                        {% empty %}
+                        <div class="ai-empty-state">
+                            <div class="ai-empty-icon"><i class="bi bi-magic"></i></div>
+                            <h5>No AI analysis yet</h5>
+                            <p>Generate your first insight card to start building a professional incident intelligence feed.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -114,11 +183,383 @@
 
 {% block extra_js %}
 <script src="{% static 'js/charts.js' %}"></script>
+<style>
+    .analytics-page .glass-card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .analytics-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .analytics-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(0, 212, 255, 0.12);
+        border: 1px solid rgba(0, 212, 255, 0.18);
+        color: var(--accent);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+    }
+
+    .analytics-header-badge,
+    .ai-insights-chip,
+    .ai-summary-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        font-weight: 600;
+    }
+
+    .analytics-toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) auto;
+        gap: 16px;
+        align-items: center;
+    }
+
+    .toolbar-copy strong,
+    .ai-summary-head h4,
+    .ai-control-panel h4 {
+        display: block;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .toolbar-label,
+    .chart-kicker,
+    .ai-field-label,
+    .ai-summary-period {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .analytics-range-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .analytics-range-group .range-btn {
+        min-width: 82px;
+        padding: 9px 16px;
+        font-size: 0.82rem;
+        border-radius: 999px;
+    }
+
+    .analytics-total-card {
+        min-width: 148px;
+        padding: 14px 18px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.14), rgba(64, 196, 255, 0.08));
+        border: 1px solid rgba(0, 212, 255, 0.18);
+        text-align: right;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+    }
+
+    .total-label {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        margin-bottom: 4px;
+    }
+
+    .total-value {
+        font-size: clamp(1.35rem, 2vw, 2rem);
+        line-height: 1;
+        font-weight: 800;
+        color: var(--accent);
+    }
+
+    .analytics-chart-card {
+        height: 100%;
+    }
+
+    .chart-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+
+    .chart-head h6 {
+        margin: 8px 0 0;
+        font-weight: 700;
+        font-size: 1rem;
+    }
+
+    .ai-insights-shell {
+        padding: 28px;
+        background:
+            radial-gradient(circle at top right, rgba(0, 212, 255, 0.14), transparent 28%),
+            linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(15, 39, 68, 0.82));
+    }
+
+    .ai-insights-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+    }
+
+    .ai-insights-header h3 {
+        margin: 0 0 8px;
+        font-size: clamp(1.45rem, 2vw, 2rem);
+        font-weight: 800;
+    }
+
+    .ai-insights-header p,
+    .ai-control-panel p,
+    .ai-empty-state p {
+        margin: 0;
+        color: var(--text-secondary);
+        line-height: 1.7;
+    }
+
+    .ai-control-panel {
+        height: 100%;
+        padding: 22px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.24);
+    }
+
+    .ai-control-icon {
+        width: 54px;
+        height: 54px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        margin-bottom: 16px;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.18), rgba(64, 196, 255, 0.08));
+        border: 1px solid rgba(0, 212, 255, 0.14);
+        color: var(--accent);
+        font-size: 1.4rem;
+    }
+
+    .ai-form-stack {
+        margin: 20px 0 18px;
+    }
+
+    .ai-select {
+        margin-top: 8px;
+        min-height: 46px;
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+    }
+
+    .ai-generate-btn {
+        width: 100%;
+        min-height: 48px;
+        font-size: 0.92rem;
+        font-weight: 700;
+        border-radius: 14px;
+    }
+
+    .ai-note-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+    }
+
+    .ai-note-card {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .ai-note-card span {
+        display: block;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        margin-bottom: 6px;
+    }
+
+    .ai-note-card strong {
+        font-size: 0.88rem;
+        color: var(--text-primary);
+    }
+
+    .ai-summary-panel {
+        height: 100%;
+        padding: 22px;
+        border-radius: 24px;
+        background: rgba(6, 10, 20, 0.38);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .ai-summary-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+
+    .ai-summary-feed {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .ai-summary-entry {
+        padding: 18px;
+        border-radius: 18px;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 18px 38px rgba(0, 0, 0, 0.2);
+    }
+
+    .ai-summary-entry-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+
+    .ai-summary-entry-head strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 1rem;
+        color: var(--text-primary);
+    }
+
+    .ai-summary-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(0, 230, 118, 0.08);
+        border: 1px solid rgba(0, 230, 118, 0.12);
+        color: #6af7ae;
+        font-size: 0.75rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .ai-summary-body {
+        color: var(--text-secondary);
+        line-height: 1.8;
+        font-size: 0.94rem;
+    }
+
+    .ai-empty-state {
+        padding: 32px 22px;
+        border-radius: 20px;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px dashed rgba(255, 255, 255, 0.14);
+    }
+
+    .ai-empty-state h5 {
+        margin: 14px 0 8px;
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+
+    .ai-empty-icon {
+        width: 64px;
+        height: 64px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 20px;
+        color: var(--accent);
+        font-size: 1.5rem;
+        background: rgba(0, 212, 255, 0.08);
+        border: 1px solid rgba(0, 212, 255, 0.14);
+    }
+
+    @media (max-width: 991.98px) {
+        .analytics-toolbar {
+            grid-template-columns: 1fr;
+        }
+
+        .analytics-total-card {
+            text-align: left;
+        }
+
+        .ai-insights-shell {
+            padding: 20px;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .analytics-range-group {
+            width: 100%;
+        }
+
+        .analytics-range-group .range-btn {
+            flex: 1 1 calc(50% - 8px);
+            min-width: 0;
+        }
+
+        .ai-note-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .ai-summary-entry,
+        .ai-control-panel,
+        .ai-summary-panel {
+            padding: 16px;
+        }
+    }
+</style>
 <script>
     // Use relative URLs so this works for ALL portals (reservist, cdc, rcdg, rescom, etc.)
     const chartUrl = 'chart-data/';
     const summaryUrl = 'generate-summary/';
     let currentRange = 'day';
+
+    function createSummaryEntry(title, bodyHtml, badgeText) {
+        return `
+            <article class="ai-summary-entry">
+                <div class="ai-summary-entry-head">
+                    <div>
+                        <span class="ai-summary-period">${title}</span>
+                        <strong>${badgeText}</strong>
+                    </div>
+                    <span class="ai-summary-badge"><i class="bi bi-stars"></i> Generated</span>
+                </div>
+                <div class="ai-summary-body">${bodyHtml}</div>
+            </article>
+        `;
+    }
 
     function loadCharts(range) {
         currentRange = range;
@@ -158,22 +599,31 @@
             .then(data => {
                 const box = document.querySelector('#aiSummaryContent .summary-text');
                 const summaryHtml = data.summary.replace(/\n/g, '<br>');
-                box.innerHTML = '<div class="mb-3"><strong>' +
-                    period.charAt(0).toUpperCase() + period.slice(1) +
-                    ' Summary</strong><br>' + summaryHtml +
-                    '</div>' + box.innerHTML;
+                const prettyPeriod = period.charAt(0).toUpperCase() + period.slice(1);
+                const entryHtml = createSummaryEntry(
+                    prettyPeriod + ' Insight',
+                    summaryHtml,
+                    prettyPeriod + ' summary'
+                );
+                const emptyState = box.querySelector('.ai-empty-state');
+                if (emptyState) {
+                    box.innerHTML = entryHtml;
+                } else {
+                    box.innerHTML = entryHtml + box.innerHTML;
+                }
                 btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-stars"></i> Generate';
+                btn.innerHTML = '<i class="bi bi-stars"></i> Generate AI Analysis';
             })
             .catch(err => {
                 console.error('AI Summary error:', err);
                 const box = document.querySelector('#aiSummaryContent .summary-text');
-                box.innerHTML = '<div class="mb-3" style="color:#e74c3c;">' +
-                    '<i class="bi bi-exclamation-triangle"></i> ' +
-                    'Failed to generate summary. Please try again.' +
-                    '</div>' + box.innerHTML;
+                box.innerHTML = createSummaryEntry(
+                    'Generation error',
+                    '<span style="color:#ff8f8f;"><i class="bi bi-exclamation-triangle"></i> Failed to generate summary. Please try again.</span>',
+                    'AI request failed'
+                ) + box.innerHTML;
                 btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-stars"></i> Generate';
+                btn.innerHTML = '<i class="bi bi-stars"></i> Generate AI Analysis';
             });
     });
 
