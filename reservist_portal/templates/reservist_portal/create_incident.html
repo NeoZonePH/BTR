@@ -69,6 +69,91 @@
         color: var(--text-muted);
     }
 
+    /* Description AI: suggestions dropdown + Improve button */
+    .description-ai-wrapper {
+        position: relative;
+    }
+    .description-ai-wrapper textarea {
+        min-height: 100px;
+    }
+    .description-ai-actions {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+    }
+    .btn-improve-description {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        border: 1px solid var(--border-color);
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 212, 255, 0.06));
+        color: var(--accent);
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s, transform 0.1s;
+    }
+    .btn-improve-description:hover {
+        border-color: var(--accent);
+        background: rgba(0, 212, 255, 0.2);
+        color: var(--accent);
+    }
+    .btn-improve-description:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    .btn-improve-description.loading {
+        pointer-events: none;
+    }
+    .btn-improve-description.loading i {
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .description-suggestions-dropdown {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 100%;
+        margin-top: 4px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        z-index: 100;
+        max-height: 220px;
+        overflow-y: auto;
+        display: none;
+    }
+    .description-suggestions-dropdown.is-open {
+        display: block;
+    }
+    .description-suggestions-dropdown .suggestion-item {
+        padding: 10px 14px;
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        cursor: pointer;
+        border-bottom: 1px solid var(--border-color);
+        transition: background 0.15s;
+    }
+    .description-suggestions-dropdown .suggestion-item:last-child {
+        border-bottom: none;
+    }
+    .description-suggestions-dropdown .suggestion-item:hover,
+    .description-suggestions-dropdown .suggestion-item[aria-selected="true"] {
+        background: rgba(0, 212, 255, 0.12);
+        color: var(--accent);
+    }
+    .description-ai-hint {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
     .evidence-actions {
         margin-bottom: 8px;
     }
@@ -328,9 +413,18 @@
                         {{ form.incident_type }}
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-3 description-ai-wrapper">
                         <label for="id_description">Description</label>
                         {{ form.description }}
+                        <div class="description-ai-actions">
+                            <button type="button" class="btn-improve-description" id="btnImproveDescription" title="Improve spelling, grammar and clarity with AI">
+                                <i class="bi bi-magic"></i> Improve with AI
+                            </button>
+                        </div>
+                        <div class="description-suggestions-dropdown" id="descriptionSuggestionsDropdown" role="listbox" aria-hidden="true"></div>
+                        <p class="description-ai-hint text-muted small mt-1 mb-0" id="descriptionAiHint">
+                            <i class="bi bi-lightbulb"></i> AI will suggest completions and fixes as you type. Use “Improve with AI” when done for a polished version.
+                        </p>
                     </div>
 
                     <div class="mb-3">
@@ -487,6 +581,199 @@
 <script src="{% static 'js/geolocation.js' %}"></script>
 <script src="{% static 'js/map.js' %}"></script>
 <script>
+    // ── Description AI: suggestions while typing + Improve with AI ──
+    (function () {
+        var textarea = document.getElementById('id_description');
+        var dropdown = document.getElementById('descriptionSuggestionsDropdown');
+        var btnImprove = document.getElementById('btnImproveDescription');
+        var suggestDebounce = null;
+        var suggestAbort = null;
+        var selectedIndex = -1;
+
+        function getCsrfToken() {
+            var el = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (el && el.value) return el.value;
+            var name = 'csrftoken=';
+            var ca = document.cookie.split(';');
+            for (var i = 0; i < ca.length; i++) {
+                var c = ca[i].trim();
+                if (c.indexOf(name) === 0) return c.substring(name.length).trim();
+            }
+            return '';
+        }
+
+        function showSuggestions(items) {
+            if (!items || items.length === 0) {
+                dropdown.classList.remove('is-open');
+                dropdown.innerHTML = '';
+                dropdown.setAttribute('aria-hidden', 'true');
+                selectedIndex = -1;
+                return;
+            }
+            dropdown.innerHTML = items.map(function (text, i) {
+                return '<div class="suggestion-item" role="option" data-index="' + i + '" tabindex="-1">' + escapeHtml(text) + '</div>';
+            }).join('');
+            dropdown.classList.add('is-open');
+            dropdown.setAttribute('aria-hidden', 'false');
+            selectedIndex = -1;
+        }
+
+        function escapeHtml(s) {
+            var div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+
+        function applySuggestion(suggestionText) {
+            var start = textarea.selectionStart;
+            var end = textarea.selectionEnd;
+            var val = textarea.value;
+            var before = val.substring(0, start);
+            var after = val.substring(end);
+            var insert = (before.length > 0 && before.slice(-1) !== ' ' && suggestionText.length > 0) ? ' ' + suggestionText : suggestionText;
+            textarea.value = before + insert + after;
+            textarea.selectionStart = textarea.selectionEnd = before.length + insert.length;
+            textarea.focus();
+            showSuggestions([]);
+        }
+
+        function fetchSuggestions() {
+            var text = (textarea.value || '').trim();
+            if (text.length < 2) {
+                showSuggestions([]);
+                return;
+            }
+            if (suggestAbort) suggestAbort.abort();
+            suggestAbort = new AbortController();
+            fetch('/api/incident-description/suggest/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ text: text }),
+                credentials: 'same-origin',
+                signal: suggestAbort.signal
+            })
+                .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error('Suggest failed')); })
+                .then(function (data) {
+                    var list = data.suggestions || [];
+                    showSuggestions(list);
+                })
+                .catch(function () {
+                    showSuggestions([]);
+                })
+                .finally(function () {
+                    suggestAbort = null;
+                });
+        }
+
+        textarea.addEventListener('input', function () {
+            clearTimeout(suggestDebounce);
+            showSuggestions([]);
+            suggestDebounce = setTimeout(fetchSuggestions, 500);
+        });
+
+        textarea.addEventListener('blur', function () {
+            clearTimeout(suggestDebounce);
+            setTimeout(function () {
+                if (!dropdown.contains(document.activeElement)) {
+                    dropdown.classList.remove('is-open');
+                }
+            }, 150);
+        });
+
+        textarea.addEventListener('keydown', function (e) {
+            if (!dropdown.classList.contains('is-open')) return;
+            var items = dropdown.querySelectorAll('.suggestion-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                items.forEach(function (el, i) { el.setAttribute('aria-selected', i === selectedIndex); });
+                if (items[selectedIndex]) items[selectedIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = Math.max(selectedIndex - 1, 0);
+                items.forEach(function (el, i) { el.setAttribute('aria-selected', i === selectedIndex); });
+                if (items[selectedIndex]) items[selectedIndex].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter' && selectedIndex >= 0 && items[selectedIndex]) {
+                e.preventDefault();
+                applySuggestion(items[selectedIndex].textContent.trim());
+            } else if (e.key === 'Escape') {
+                dropdown.classList.remove('is-open');
+                selectedIndex = -1;
+            }
+        });
+
+        dropdown.addEventListener('click', function (e) {
+            var item = e.target.closest('.suggestion-item');
+            if (item) {
+                e.preventDefault();
+                applySuggestion(item.textContent.trim());
+            }
+        });
+
+        function updateImproveButtonState() {
+            if (btnImprove) btnImprove.disabled = !(textarea.value || '').trim();
+        }
+        if (btnImprove) {
+            btnImprove.disabled = true;
+            textarea.addEventListener('input', updateImproveButtonState);
+            updateImproveButtonState();
+            btnImprove.addEventListener('click', function () {
+                var text = (textarea.value || '').trim();
+                if (!text) {
+                    return;
+                }
+                btnImprove.classList.add('loading');
+                btnImprove.disabled = true;
+                btnImprove.innerHTML = '<i class="bi bi-hourglass-split"></i> Improving…';
+                fetch('/api/incident-description/improve/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ text: text }),
+                    credentials: 'same-origin'
+                })
+                    .then(function (r) {
+                        if (!r.ok) return r.text().then(function (t) { return Promise.reject(new Error(r.status + ': ' + (t || r.statusText))); });
+                        return r.json();
+                    })
+                    .then(function (data) {
+                        var improved = (data.improved != null ? String(data.improved) : '').trim();
+                        textarea.value = improved;
+                        if (typeof updateImproveButtonState === 'function') updateImproveButtonState();
+                        var hintEl = document.getElementById('descriptionAiHint');
+                        if (hintEl) {
+                            if (data.unchanged) {
+                                hintEl.innerHTML = '<i class="bi bi-info-circle"></i> No changes suggested. Set OPENROUTER_API_KEY in your environment for AI improvements.';
+                                hintEl.style.color = 'var(--text-muted)';
+                            } else {
+                                hintEl.innerHTML = '<i class="bi bi-check-circle-fill" style="color:var(--accent);"></i> Description updated with AI.';
+                                hintEl.style.color = 'var(--accent)';
+                                setTimeout(function () {
+                                    hintEl.innerHTML = '<i class="bi bi-lightbulb"></i> AI will suggest completions and fixes as you type. Use “Improve with AI” when done for a polished version.';
+                                    hintEl.style.color = '';
+                                }, 4000);
+                            }
+                        }
+                    })
+                    .catch(function (err) {
+                        alert('Could not improve description: ' + (err.message || 'Please check your connection and try again.'));
+                    })
+                    .finally(function () {
+                        btnImprove.classList.remove('loading');
+                        btnImprove.disabled = false;
+                        btnImprove.innerHTML = '<i class="bi bi-magic"></i> Improve with AI';
+                    });
+            });
+        }
+    })();
+
     // ── Evidence upload: drag-and-drop + camera (getUserMedia) ──
     (function () {
         const MAX_SIZE = 104857600; // 100MB

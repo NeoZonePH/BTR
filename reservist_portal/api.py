@@ -258,3 +258,38 @@ def stop_responder(request):
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
 
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def incident_description_suggest(request):
+    """
+    AI suggestions for incident description while typing.
+    Body: { "text": "partial description" }
+    Returns: { "suggestions": ["s1", "s2", ...] }
+    """
+    from .ai_service import suggest_incident_description
+    text = (request.data.get('text') or '').strip()
+    if not text:
+        return Response({'suggestions': []})
+    suggestions = suggest_incident_description(text)
+    return Response({'suggestions': suggestions})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def incident_description_improve(request):
+    """
+    AI-improved full description (spelling, grammar, clarity).
+    Body: { "text": "full description" }
+    Returns: { "improved": "...", "unchanged": bool }
+    """
+    from .ai_service import improve_incident_description
+    text = (request.data.get('text') or '').strip()
+    if not text:
+        return Response({'improved': '', 'unchanged': True})
+    improved = improve_incident_description(text)
+    return Response({
+        'improved': improved,
+        'unchanged': (improved or '') == (text or ''),
+    })
+

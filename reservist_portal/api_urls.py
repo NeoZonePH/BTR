@@ -6,4 +6,6 @@ urlpatterns = [
     path('responder/update-location/', api.update_responder_location, name='api_update_location'),
     path('responder/stop/', api.stop_responder, name='api_stop_responder'),
     path('responders/active/', api.active_responders_list, name='api_active_responders'),
+    path('incident-description/suggest/', api.incident_description_suggest, name='api_incident_description_suggest'),
+    path('incident-description/improve/', api.incident_description_improve, name='api_incident_description_improve'),
 ]

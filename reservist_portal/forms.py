@@ -39,6 +39,7 @@ class IncidentForm(forms.ModelForm):
             }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control', 'rows': 4, 'placeholder': 'Describe the incident in detail...',
+                'id': 'id_description', 'autocomplete': 'off',
             }),
             'incident_type': forms.Select(attrs={'class': 'form-select'}),
             'video_upload': forms.ClearableFileInput(attrs={

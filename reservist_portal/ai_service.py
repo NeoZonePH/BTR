@@ -183,3 +183,142 @@ def _serialize_stats(stats):
         else:
             serializable[key] = value
     return serializable
+
+
+def _get_openrouter_client():
+    """Return OpenAI client configured for OpenRouter, or None if no API key."""
+    api_key = getattr(settings, 'OPENROUTER_API_KEY', '')
+    base_url = getattr(settings, 'OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1')
+    if not api_key:
+        return None
+    try:
+        from openai import OpenAI
+        return OpenAI(api_key=api_key, base_url=base_url)
+    except Exception:
+        return None
+
+
+# Models to try for description suggest/improve (fast, free)
+DESCRIPTION_AI_MODELS = [
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'google/gemma-3-27b-it:free',
+    'mistralai/mistral-small-3.1-24b-instruct:free',
+    'qwen/qwen3-235b-a22b-instruct:free',
+    getattr(settings, 'OPENROUTER_MODEL', 'openai/gpt-oss-120b:free'),
+]
+
+
+def suggest_incident_description(text):
+    """
+    Return 2-3 short AI suggestions based on the current description text:
+    - Word/sentence completions
+    - Spelling/grammar corrections for the last phrase
+    - Alternative phrasings or next thought
+    Returns list of strings; empty list if API fails or text is empty.
+    """
+    text = (text or '').strip()
+    if not text or len(text) < 2:
+        return []
+
+    client = _get_openrouter_client()
+    if not client:
+        return []
+
+    system = (
+        "You are a helpful assistant for writing emergency incident reports in the Philippines. "
+        "Given the partial description the user is typing, suggest 2 or 3 short completions or improvements. "
+        "Options: (1) complete the current sentence, (2) fix spelling/grammar of the last part, (3) suggest a clearer or more professional phrase. "
+        "Reply with a JSON array of strings only, e.g. [\"suggestion one\", \"suggestion two\"]. No other text."
+    )
+    user = f"Current text:\n{text}\n\nReply with a JSON array of 2-3 short suggestion strings only."
+
+    for model in DESCRIPTION_AI_MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {'role': 'system', 'content': system},
+                    {'role': 'user', 'content': user},
+                ],
+                max_tokens=150,
+                temperature=0.4,
+            )
+            content = (response.choices[0].message.content or '').strip()
+            if not content:
+                continue
+            # Parse JSON array (allow wrapped in markdown code block)
+            if '```' in content:
+                content = content.split('```')[1]
+                if content.startswith('json'):
+                    content = content[4:]
+                content = content.strip()
+            suggestions = json.loads(content)
+            if isinstance(suggestions, list):
+                return [str(s).strip() for s in suggestions if s][:3]
+            return []
+        except Exception as e:
+            logger.warning("suggest_incident_description model %s failed: %s", model, e)
+            continue
+    return []
+
+
+def improve_incident_description(text):
+    """
+    Return a single improved version of the full incident description:
+    correct spelling and grammar, improve clarity and structure, keep the same meaning.
+    Returns the improved string, or the original if API fails.
+    """
+    text = (text or '').strip()
+    if not text:
+        return text
+
+    client = _get_openrouter_client()
+    if not client:
+        return text
+
+    system = (
+        "You are a professional editor for emergency incident reports in the Philippines. "
+        "Rewrite the user's incident description to fix spelling and grammar, improve clarity and flow, "
+        "and make it more professional. Keep the same facts and meaning; only improve wording. "
+        "Output only the improved description text, nothing else."
+    )
+    user = f"Incident description to improve:\n\n{text}"
+
+    for model in DESCRIPTION_AI_MODELS:
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {'role': 'system', 'content': system},
+                    {'role': 'user', 'content': user},
+                ],
+                max_tokens=800,
+                temperature=0.3,
+            )
+            result = (response.choices[0].message.content or '').strip()
+            if result:
+                return _strip_improve_preamble(result)
+        except Exception as e:
+            logger.warning("improve_incident_description model %s failed: %s", model, e)
+            continue
+    return text
+
+
+def _strip_improve_preamble(text):
+    """Remove common LLM preambles so we only keep the actual description."""
+    if not text:
+        return text
+    lower = text.lower()
+    prefixes = (
+        'here is the improved description:',
+        'here is the improved version:',
+        'improved description:',
+        'improved version:',
+        'here\'s the improved description:',
+        'here\'s the improved version:',
+    )
+    for p in prefixes:
+        if lower.startswith(p):
+            text = text[len(p):].lstrip()
+            break
+    return text.strip() or text
