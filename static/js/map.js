@@ -797,9 +797,11 @@ class IncidentListControl {
 
 // ── Responder Tracking Logic ──
 let activeWatchId = null;
+let activeLocationPollId = null;
 let trackingSocket = null;
 let currentRespondingIncidentId = null; // Which incident the current user is responding to (for showing Stop in popup)
 let activeResponderMarkers = {}; // Store by reservist_id to handle multiple responders
+let lastResponderCoords = null;
 
 /** Remove a single responder's marker and route from the map (e.g. when they click Stop). */
 function removeResponderMarker(reservistId) {
@@ -841,11 +843,23 @@ function loadActiveResponders() {
         .then((res) => res.json())
         .then((data) => {
             const responders = data.responders || [];
+            const currentUserId = (typeof window.__USER_ID__ !== 'undefined' && window.__USER_ID__ != null)
+                ? String(window.__USER_ID__)
+                : null;
+            let currentUserActiveIncidentId = null;
+
             responders.forEach((r) => {
                 if (incidentIds.has(String(r.incident_id))) {
                     updateResponderOnMap(r, true);
+                    if (currentUserId && String(r.reservist_id) === currentUserId) {
+                        currentUserActiveIncidentId = String(r.incident_id);
+                    }
                 }
             });
+
+            // Rehydrate the responder's own active-response state after refresh so the
+            // popup can still show Stop while the tracking row remains active.
+            currentRespondingIncidentId = currentUserActiveIncidentId;
         })
         .catch((err) => console.error('Failed to load active responders:', err));
 }
@@ -934,17 +948,67 @@ function startResponding(event, incidentId) {
         }, true);
     }
 
+    function shouldSendResponderPosition(lat, lng, force = false) {
+        if (force || !lastResponderCoords) {
+            lastResponderCoords = { lat, lng };
+            return true;
+        }
+        const latChanged = Math.abs(lastResponderCoords.lat - lat) > 0.000005;
+        const lngChanged = Math.abs(lastResponderCoords.lng - lng) > 0.000005;
+        if (latChanged || lngChanged) {
+            lastResponderCoords = { lat, lng };
+            return true;
+        }
+        return false;
+    }
+
+    function syncResponderPosition(lat, lng, force = false) {
+        applyPositionToMap(lat, lng, 'Responding');
+
+        const uid = (typeof window.__USER_ID__ !== 'undefined' && window.__USER_ID__ != null) ? String(window.__USER_ID__) : null;
+        if (!shouldSendResponderPosition(lat, lng, force)) {
+            return;
+        }
+
+        fetch('/api/responder/update-location/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                incident_id: incidentId,
+                latitude: lat,
+                longitude: lng
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.status === 'On Scene') {
+                    // Update status button (first button in the popup actions) to "On Scene" — Stop button stays visible
+                    if (event && event.target) {
+                        event.target.textContent = "On Scene ✅";
+                        event.target.style.background = 'linear-gradient(135deg,#3b82f6,#2563eb)';
+                    }
+                    // Update responder marker label to "On Scene"
+                    if (uid && activeResponderMarkers[uid]) {
+                        const markerEl = activeResponderMarkers[uid].getElement();
+                        if (markerEl) {
+                            const statusNode = markerEl.querySelector('.resp-status');
+                            if (statusNode) statusNode.textContent = 'On Scene';
+                        }
+                    }
+                }
+            })
+            .catch(err => console.error("Error updating location:", err));
+    }
+
     // Get initial position so the marker appears right away (watchPosition may take a moment)
     navigator.geolocation.getCurrentPosition(
         (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-            applyPositionToMap(lat, lng, 'Responding');
-            fetch('/api/responder/update-location/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-                body: JSON.stringify({ incident_id: incidentId, latitude: lat, longitude: lng }),
-            }).catch(() => {});
+            syncResponderPosition(lat, lng, true);
         },
         () => {},
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
@@ -955,44 +1019,7 @@ function startResponding(event, incidentId) {
         (position) => {
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
-
-            // Update this user's responder marker on the map immediately so it moves in real time (no wait for server)
-            applyPositionToMap(lat, lng, 'Responding');
-
-            const uid = (typeof window.__USER_ID__ !== 'undefined' && window.__USER_ID__ != null) ? String(window.__USER_ID__) : null;
-
-            // Post update to API so other dashboards receive via WebSocket
-            fetch('/api/responder/update-location/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({
-                    incident_id: incidentId,
-                    latitude: lat,
-                    longitude: lng
-                })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success && data.status === 'On Scene') {
-                        // Update status button (first button in the popup actions) to "On Scene" — Stop button stays visible
-                        if (event && event.target) {
-                            event.target.textContent = "On Scene ✅";
-                            event.target.style.background = 'linear-gradient(135deg,#3b82f6,#2563eb)';
-                        }
-                        // Update responder marker label to "On Scene"
-                        if (uid && activeResponderMarkers[uid]) {
-                            const markerEl = activeResponderMarkers[uid].getElement();
-                            if (markerEl) {
-                                const statusNode = markerEl.querySelector('.resp-status');
-                                if (statusNode) statusNode.textContent = 'On Scene';
-                            }
-                        }
-                    }
-                })
-                .catch(err => console.error("Error updating location:", err));
+            syncResponderPosition(lat, lng);
         },
         (error) => {
             console.error("Geolocation error:", error);
@@ -1010,13 +1037,31 @@ function startResponding(event, incidentId) {
             maximumAge: 0
         }
     );
+
+    // Fallback polling keeps live movement reliable on browsers/devices where watchPosition is sparse.
+    activeLocationPollId = window.setInterval(() => {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                syncResponderPosition(lat, lng);
+            },
+            () => {},
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+    }, 3000);
 }
 
 function stopResponding() {
     currentRespondingIncidentId = null;
+    lastResponderCoords = null;
     if (activeWatchId) {
         navigator.geolocation.clearWatch(activeWatchId);
         activeWatchId = null;
+    }
+    if (activeLocationPollId) {
+        window.clearInterval(activeLocationPollId);
+        activeLocationPollId = null;
     }
     if (trackingSocket) {
         trackingSocket.close();
@@ -1070,6 +1115,19 @@ function stopRespondingAndNotify(event, incidentId) {
         });
 }
 
+function getDistanceToIncident(respLat, respLng, incidentId) {
+    if (!currentGeojsonFeatures || currentGeojsonFeatures.length === 0) return null;
+    const f = currentGeojsonFeatures.find(feat => String(feat.properties.id) === String(incidentId));
+    if (!f) return null;
+    const incLat = f.geometry.coordinates[1];
+    const incLng = f.geometry.coordinates[0];
+    const dist = calculateDistance(respLat, respLng, incLat, incLng);
+    if (dist === null) return null;
+    const km = parseFloat(dist);
+    if (km < 1) return (km * 1000).toFixed(0) + ' m';
+    return km.toFixed(2) + ' km';
+}
+
 function updateResponderOnMap(data, drawRoute = false) {
     if (!targetMap) return;
 
@@ -1077,9 +1135,9 @@ function updateResponderOnMap(data, drawRoute = false) {
     const lat = parseFloat(data.latitude);
     const coords = [lng, lat];
     const rid = data.reservist_id;
+    const distText = getDistanceToIncident(lat, lng, data.incident_id) || '';
 
     if (!activeResponderMarkers[rid]) {
-        // Inject pulse CSS if it doesn't exist yet
         if (!document.getElementById('responderMarkerStyle')) {
             const style = document.createElement('style');
             style.id = 'responderMarkerStyle';
@@ -1093,7 +1151,7 @@ function updateResponderOnMap(data, drawRoute = false) {
                 .resp-dot {
                     width: 16px;
                     height: 16px;
-                    background-color: #f59e0b; /* amber-500 */
+                    background-color: #f59e0b;
                     border-radius: 50%;
                     box-shadow: 0 0 10px rgba(245, 158, 11, 0.8);
                     position: absolute;
@@ -1103,7 +1161,7 @@ function updateResponderOnMap(data, drawRoute = false) {
                 .resp-pulse {
                     width: 70px;
                     height: 70px;
-                    background-color: rgba(245, 158, 11, 0.5); /* amber-500 */
+                    background-color: rgba(245, 158, 11, 0.5);
                     border-radius: 50%;
                     position: absolute;
                     z-index: 1;
@@ -1116,18 +1174,28 @@ function updateResponderOnMap(data, drawRoute = false) {
                 .resp-label {
                     position: absolute;
                     top: 25px;
-                    background: rgba(0,0,0,0.8);
+                    background: rgba(0,0,0,0.85);
                     color: #fff;
-                    padding: 4px 10px;
-                    border-radius: 4px;
+                    padding: 6px 12px;
+                    border-radius: 6px;
                     font-size: 0.75rem;
                     white-space: nowrap;
-                    backdrop-filter: blur(4px);
+                    backdrop-filter: blur(6px);
                     display: flex;
                     flex-direction: column;
                     align-items: center;
                     z-index: 3;
-                    border: 1px solid rgba(255,255,255,0.2);
+                    border: 1px solid rgba(255,255,255,0.15);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+                }
+                .resp-distance {
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    color: #00d4ff;
+                    margin-top: 3px;
+                    padding: 2px 8px;
+                    background: rgba(0, 212, 255, 0.1);
+                    border-radius: 4px;
                 }
             `;
             document.head.appendChild(style);
@@ -1145,6 +1213,7 @@ function updateResponderOnMap(data, drawRoute = false) {
                 <strong style="color:var(--accent,#f59e0b);font-size:0.7rem;text-transform:uppercase;">Responder</strong>
                 <span style="font-weight:700;font-size:0.8rem;">${data.reservist_name}</span>
                 <span class="resp-status" style="font-size:0.65rem;color:#94a3b8;margin-top:2px;">${data.status}</span>
+                ${distText ? `<span class="resp-distance">📍 ${distText} away</span>` : '<span class="resp-distance"></span>'}
             </div>
         `;
 
@@ -1154,12 +1223,13 @@ function updateResponderOnMap(data, drawRoute = false) {
     } else {
         activeResponderMarkers[rid].setLngLat(coords);
 
-        // Update status text dynamically
         const el = activeResponderMarkers[rid].getElement();
         if (el) {
             const statusNode = el.querySelector('.resp-status');
-            if (statusNode) {
-                statusNode.textContent = data.status;
+            if (statusNode) statusNode.textContent = data.status;
+            const distNode = el.querySelector('.resp-distance');
+            if (distNode) {
+                distNode.innerHTML = distText ? `📍 ${distText} away` : '';
             }
         }
     }
