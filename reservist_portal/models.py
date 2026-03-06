@@ -116,3 +116,5 @@ class AISummary(models.Model):
 
     def __str__(self):
         return f"{self.get_period_display()} Summary: {self.period_start} - {self.period_end}"
+
+from .tracking_models import ResponderTracking

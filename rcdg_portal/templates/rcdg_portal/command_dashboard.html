@@ -164,6 +164,9 @@
     window.__CDC_LOCATIONS__ = {{ cdc_locations_json | safe }};
     window.__RESERVIST_LOCATIONS__ = {{ reservist_locations_json | safe }};
 </script>
+<script>
+    window.__IS_RESERVIST__ = false;
+</script>
 <script src="{% static 'js/map.js' %}"></script>
 <script src="{% static 'js/charts.js' %}"></script>
 <script>

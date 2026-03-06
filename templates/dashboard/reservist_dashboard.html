@@ -137,6 +137,10 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+    window.__IS_RESERVIST__ = true;
+    window.__USER_ID__ = '{{ request.user.id }}' || "null";
+</script>
 <script src="{% static 'js/map.js' %}"></script>
 <script>
     initIncidentMap('incidentMap', '/api/incidents/');

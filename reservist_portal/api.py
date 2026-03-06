@@ -107,3 +107,154 @@ def incidents_geojson(request):
         'type': 'FeatureCollection',
         'features': features,
     })
+
+
+import math
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+from .tracking_models import ResponderTracking
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """Calculate distance in meters between two lat/lng coordinates."""
+    R = 6371000  # Radius of Earth in meters
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = math.sin(delta_phi / 2.0)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2.0)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_responder_location(request):
+    """
+    Endpoint for reservists to POST their current GPS location.
+    Saves to DB and broadcasts via Django Channels WebSocket.
+    """
+    incident_id = request.data.get('incident_id')
+    lat = request.data.get('latitude')
+    lng = request.data.get('longitude')
+    
+    if not all([incident_id, lat, lng]):
+        return Response({'success': False, 'error': 'Missing required fields'}, status=400)
+    
+    try:
+        incident = Incident.objects.get(id=incident_id)
+        current_lat = float(lat)
+        current_lng = float(lng)
+        
+        # Upsert Tracking record
+        tracking, created = ResponderTracking.objects.update_or_create(
+            reservist=request.user,
+            incident=incident,
+            defaults={
+                'latitude': current_lat,
+                'longitude': current_lng,
+                'status': 'responding'
+            }
+        )
+        
+        # Check if On Scene (within 50 meters)
+        incident_lat = float(incident.latitude)
+        incident_lng = float(incident.longitude)
+        
+        dist_meters = haversine_distance(current_lat, current_lng, incident_lat, incident_lng)
+        
+        if dist_meters < 50:
+            tracking.status = 'on_scene'
+            tracking.save()
+
+        # Broadcast update to WebSockets
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'incident_tracking_{incident_id}',
+            {
+                'type': 'tracking_message',
+                'data': {
+                    'incident_id': str(incident_id),
+                    'reservist_id': str(request.user.id),
+                    'reservist_name': request.user.full_name,
+                    'latitude': current_lat,
+                    'longitude': current_lng,
+                    'status': tracking.get_status_display()
+                }
+            }
+        )
+        
+        return Response({'success': True, 'status': tracking.get_status_display()})
+        
+    except Incident.DoesNotExist:
+        return Response({'success': False, 'error': 'Incident not found'}, status=404)
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def active_responders_list(request):
+    """
+    Return all active responders (with current lat/lng) so maps can restore
+    responder markers after page refresh. Used by RESCOM, CDC, RCDG, PDRRMO, MDRRMO dashboards.
+    """
+    qs = ResponderTracking.objects.filter(
+        latitude__isnull=False,
+        longitude__isnull=False,
+    ).exclude(
+        status__in=('available', 'completed')
+    ).select_related('reservist', 'incident')
+
+    incident_ids = request.query_params.get('incident_ids')
+    if incident_ids:
+        ids = [i.strip() for i in incident_ids.split(',') if i.strip()]
+        if ids:
+            qs = qs.filter(incident_id__in=ids)
+
+    payload = []
+    for t in qs:
+        payload.append({
+            'incident_id': str(t.incident_id),
+            'reservist_id': str(t.reservist_id),
+            'reservist_name': t.reservist.full_name or 'Responder',
+            'latitude': float(t.latitude),
+            'longitude': float(t.longitude),
+            'status': t.get_status_display(),
+        })
+    return Response({'responders': payload})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def stop_responder(request):
+    """
+    Stop responding to an incident. Sets ResponderTracking status to completed and
+    broadcasts responder_stopped so all dashboards remove the responder's marker.
+    """
+    incident_id = request.data.get('incident_id')
+    if not incident_id:
+        return Response({'success': False, 'error': 'Missing incident_id'}, status=400)
+    try:
+        incident = Incident.objects.get(id=incident_id)
+        tracking = ResponderTracking.objects.filter(
+            reservist=request.user,
+            incident=incident,
+        ).first()
+        if tracking:
+            tracking.status = 'completed'
+            tracking.latitude = None
+            tracking.longitude = None
+            tracking.save()
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'incident_tracking_{incident_id}',
+            {
+                'type': 'responder_stopped',
+                'reservist_id': str(request.user.id),
+            },
+        )
+        return Response({'success': True})
+    except Incident.DoesNotExist:
+        return Response({'success': False, 'error': 'Incident not found'}, status=404)
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
+

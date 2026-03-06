@@ -162,6 +162,12 @@
     window.__CDC_LOCATIONS__ = {{ cdc_locations_json | safe }};
     window.__RESERVIST_LOCATIONS__ = {{ reservist_locations_json | safe }};
 </script>
+<script>
+    window.__IS_RESERVIST__ = false;
+    window.__CAN_RESPOND_TO_INCIDENT__ = true;  /* MDRRMO can respond to incidents; multiple responders supported */
+    window.__USER_ID__ = '{{ request.user.id }}';
+    window.__USER_NAME__ = "{{ request.user.full_name|escapejs }}";
+</script>
 <script src="{% static 'js/map.js' %}"></script>
 <script src="{% static 'js/charts.js' %}"></script>
 <script>

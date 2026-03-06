@@ -23,6 +23,7 @@ X_FRAME_OPTIONS = 'DENY'
 
 # Application definition
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -33,6 +34,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'crispy_forms',
     'crispy_bootstrap5',
+    'channels',
     # Local apps
     'users.apps.UsersConfig',
     'references.apps.ReferencesConfig',
@@ -74,6 +76,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'target.wsgi.application'
+ASGI_APPLICATION = 'target.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [(os.getenv('REDIS_HOST', '127.0.0.1'), int(os.getenv('REDIS_PORT', 6379)))],
+        },
+    },
+}
 
 # Database
 DATABASES = {
@@ -143,3 +155,15 @@ OPENROUTER_MODEL = 'openai/gpt-oss-120b:free'
 SMS_PROVIDER = os.getenv('SMS_PROVIDER', 'console')
 SMS_API_KEY = os.getenv('SMS_API_KEY', '')
 SMS_API_SECRET = os.getenv('SMS_API_SECRET', '')
+
+# Django Channels
+ASGI_APPLICATION = 'target.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
+

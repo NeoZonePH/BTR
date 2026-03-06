@@ -11,7 +11,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
         ('TARGET Profile', {
             'fields': (
-                'full_name', 'rank', 'afpsn', 'unit',
+                'full_name', 'rank', 'afpsn',
                 'region', 'province', 'municipality', 'mobile_number', 'role',
             ),
         }),
@@ -19,7 +19,7 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         ('TARGET Profile', {
             'fields': (
-                'full_name', 'rank', 'afpsn', 'unit',
+                'full_name', 'rank', 'afpsn',
                 'region', 'province', 'municipality', 'mobile_number', 'role',
             ),
         }),
