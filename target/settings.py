@@ -49,6 +49,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'target.middleware.ManilaTimezoneMiddleware',  # Always use Asia/Manila (Philippines) local time
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -112,11 +113,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
+# Internationalization — application uses Philippines local time everywhere
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Asia/Manila'
+TIME_ZONE = 'Asia/Manila'  # Philippines; all datetimes displayed and interpreted in this zone
 USE_I18N = True
-USE_TZ = True
+USE_TZ = True  # Store UTC in DB; ManilaTimezoneMiddleware activates Asia/Manila per request
 
 # Static files
 STATIC_URL = 'static/'
