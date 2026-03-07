@@ -9,6 +9,10 @@
     content="TARGET — Tactical Automated Response & Geolocation Emergency Tracker. Government-grade emergency incident management system.">
   <title>{% block title %}TARGET{% endblock %} — Emergency Tracker</title>
 
+  <!-- Favicon (crosshair) -->
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  <link rel="shortcut icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
@@ -88,6 +92,10 @@
       <a href="{% url 'rcdg:rcdg_incident_list' %}"
         class="nav-link {% if request.resolver_match.url_name == 'rcdg_incident_list' %}active{% endif %}">
         <i class="bi bi-exclamation-triangle-fill"></i> All Incidents
+      </a>
+      <a href="{% url 'rcdg:rcdg_responder_records' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'rcdg_responder_records' %}active{% endif %}">
+        <i class="bi bi-person-check-fill"></i> Responder Records
       </a>
       <a href="{% url 'reservist:recycle_bin' %}"
         class="nav-link {% if request.resolver_match.url_name == 'recycle_bin' %}active{% endif %}">
@@ -169,8 +177,12 @@
         <i class="bi bi-people-fill"></i> Manage DRRMO
       </a>
       <a href="{% url 'cdc:pending_reservists' %}"
-        class="nav-link {% if request.resolver_match.url_name == 'pending_reservists' %}active{% endif %}">
+        class="nav-link {% if request.resolver_match.url_name == 'pending_reservists' %}active{% endif %}"
+        style="display:flex;align-items:center;gap:6px;">
         <i class="bi bi-person-check-fill"></i> Reservist Approvals
+        {% if pending_reservist_approval_count > 0 %}
+        <span class="badge rounded-pill" style="background:var(--accent);color:#000;font-size:0.7rem;">{{ pending_reservist_approval_count }}</span>
+        {% endif %}
       </a>
       {% endif %}
 
@@ -220,6 +232,12 @@
               <a href="{% url 'notification_read_all' %}" style="font-size:0.75rem;">Mark all read</a>
               {% endif %}
             </div>
+            {% if user.role == 'CDC' and pending_reservist_approval_count > 0 %}
+            <a href="{% url 'cdc:pending_reservists' %}" class="notification-item unread" style="display:block;color:inherit;border-left:3px solid var(--accent);">
+              <div class="notif-message"><i class="bi bi-person-check-fill" style="color:var(--accent);"></i> {{ pending_reservist_approval_count }} reservist{{ pending_reservist_approval_count|pluralize }} pending approval</div>
+              <div class="notif-time">Review and approve</div>
+            </a>
+            {% endif %}
             {% for n in recent_notifications %}
             <a href="{% url 'notification_read' n.pk %}"
               class="notification-item {% if not n.is_read %}unread{% endif %}" style="display:block;color:inherit;">

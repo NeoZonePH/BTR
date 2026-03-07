@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Notification
+from .models import User, Notification, SignupAttempt
 
 
 @admin.register(User)
@@ -31,3 +31,13 @@ class NotificationAdmin(admin.ModelAdmin):
     list_display = ('user', 'message', 'is_read', 'created_at')
     list_filter = ('is_read', 'created_at')
     search_fields = ('user__full_name', 'message')
+
+
+@admin.register(SignupAttempt)
+class SignupAttemptAdmin(admin.ModelAdmin):
+    """Monitor blocked and successful signup attempts (anti-bot logging)."""
+    list_display = ('ip_address', 'username', 'email', 'success', 'block_reason', 'created_at')
+    list_filter = ('success', 'block_reason', 'created_at')
+    search_fields = ('ip_address', 'username', 'email', 'block_reason')
+    readonly_fields = ('ip_address', 'username', 'email', 'success', 'block_reason', 'created_at')
+    date_hierarchy = 'created_at'

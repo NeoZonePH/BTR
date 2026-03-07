@@ -159,3 +159,28 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.user.full_name} - {self.get_action_display()} at {self.created_at}"
+
+
+class SignupAttempt(models.Model):
+    """
+    Tracks signup attempts for IP-based daily limits and security logging.
+    - success=True: successful registration (counted toward max 5 per IP per day).
+    - success=False: blocked attempt; username/email/block_reason stored for monitoring.
+    """
+
+    ip_address = models.GenericIPAddressField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    # For blocked attempts only (optional, for audit)
+    username = models.CharField(max_length=150, blank=True)
+    email = models.EmailField(blank=True, max_length=254)
+    success = models.BooleanField(default=False)
+    block_reason = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['ip_address', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.ip_address} @ {self.created_at} success={self.success} {self.block_reason or ''}"

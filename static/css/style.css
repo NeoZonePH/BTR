@@ -829,6 +829,27 @@ a:hover {
   animation: fadeInUp 0.6s ease;
 }
 
+.auth-card--register {
+  max-width: 860px;
+}
+
+.auth-card--register .register-form-row {
+  align-items: flex-end;
+}
+
+.auth-card--register .register-form-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-card--register .register-form-label {
+  flex-shrink: 0;
+  min-height: 2.25rem;
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 0.35rem;
+}
+
 .auth-card .auth-logo {
   text-align: center;
   margin-bottom: 28px;

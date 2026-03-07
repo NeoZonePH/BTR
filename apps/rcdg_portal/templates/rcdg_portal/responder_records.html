@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Responder Records{% endblock %}
+{% block topbar_title %}Responder Records{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in">
+        <h2>Responder Records</h2>
+        <p>All responders (PDRRMO, MDRRMO, RCDG, CDC, Reservist) who clicked Respond and went to an incident</p>
+    </div>
+
+    <div class="glass-card animate-fade-in mb-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+            <h6 style="margin:0;font-weight:700;"><i class="bi bi-person-check-fill" style="color:var(--accent);"></i> Responders</h6>
+            <form method="get" class="d-flex align-items-center gap-2">
+                <label for="roleFilter" class="form-label mb-0" style="font-size:0.875rem;">Filter by role:</label>
+                <select name="role" id="roleFilter" class="form-select form-select-sm" style="width:auto;max-width:180px;" onchange="this.form.submit()">
+                    {% for value, label in role_filters %}
+                    <option value="{{ value }}" {% if current_role == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn-target btn-target-outline btn-sm">Apply</button>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th>Responder</th>
+                        <th>Role</th>
+                        <th>Incident</th>
+                        <th>Status</th>
+                        <th>Date / Time</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in responders %}
+                    <tr>
+                        <td><strong>{{ r.reservist.full_name }}</strong></td>
+                        <td>
+                            <span class="badge" style="font-size:0.75rem;background:var(--bg-glass);color:var(--text-primary);border:1px solid var(--border-color);">
+                                {{ r.reservist.get_role_display }}
+                            </span>
+                        </td>
+                        <td style="font-size:0.82rem;">{{ r.incident.title }}</td>
+                        <td>
+                            <span class="badge" style="font-size:0.75rem;{% if r.status == 'responding' %}background:rgba(245,158,11,0.2);color:#f59e0b;{% elif r.status == 'on_scene' %}background:rgba(59,130,246,0.2);color:#3b82f6;{% elif r.status == 'completed' %}background:rgba(100,116,139,0.2);color:#94a3b8;{% else %}background:var(--bg-glass);color:var(--text-muted);{% endif %}">
+                                {{ r.get_status_display }}
+                            </span>
+                        </td>
+                        <td style="font-size:0.82rem;">{{ r.timestamp|date:"M d, Y" }} {{ r.timestamp|time:"g:i A" }}</td>
+                        <td>
+                            <a href="{% url 'rcdg:rcdg_incident_detail' r.incident.pk %}" class="btn-target btn-target-outline" style="padding:4px 12px;font-size:0.75rem;">View incident</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center" style="color:var(--text-muted);padding:32px;">
+                            No responder records found.{% if current_role %} Try changing the role filter.{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if responders %}
+        <p class="mb-0 mt-2" style="font-size:0.8rem;color:var(--text-muted);">Showing up to 500 most recent records.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

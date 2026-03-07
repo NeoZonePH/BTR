@@ -3,6 +3,21 @@
 
 {% block title %}Register{% endblock %}
 
+{% block extra_head %}
+<style>
+  /* Honeypot: hide from users; bots that fill it get 403 */
+  .hp-field-wrap {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+</style>
+{% endblock %}
+
 {% block auth_content %}
 <div class="auth-wrapper">
     <div class="auth-card" style="max-width:560px;">
@@ -26,6 +41,14 @@
 
         <form method="post" class="glass-form">
             {% csrf_token %}
+            {# Anti-bot: honeypot — hidden via CSS; must stay empty #}
+            <div class="hp-field-wrap" aria-hidden="true">
+                <label for="id_middle_name">Middle name</label>
+                {{ form.middle_name }}
+            </div>
+            {# Server-side form timing check; value set when page loads #}
+            <input type="hidden" name="form_load_timestamp" value="{{ form_load_timestamp|default:'' }}">
+
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label>Username</label>
@@ -34,6 +57,12 @@
                 <div class="col-md-6 mb-3">
                     <label>Full Name</label>
                     {{ form.full_name }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 mb-3">
+                    <label>Email <small style="color:var(--text-muted);">(optional)</small></label>
+                    {{ form.email }}
                 </div>
             </div>
             <div class="row">

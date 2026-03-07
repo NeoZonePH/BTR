@@ -35,15 +35,16 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'channels',
+    'disposable_email_checker',  # Anti-bot: block disposable/temporary email domains
     # Local apps
     'users.apps.UsersConfig',
     'references.apps.ReferencesConfig',
-    'reservist_portal.apps.ReservistPortalConfig',
-    'rescom_portal.apps.RescomPortalConfig',
-    'rcdg_portal.apps.RcdgPortalConfig',
-    'cdc_portal.apps.CdcPortalConfig',
-    'pdrrmo_portal.apps.PdrrmoPortalConfig',
-    'mdrrmo_portal.apps.MdrrmoPortalConfig',
+    'apps.reservist_portal.apps.ReservistPortalConfig',
+    'apps.rescom_portal.apps.RescomPortalConfig',
+    'apps.rcdg_portal.apps.RcdgPortalConfig',
+    'apps.cdc_portal.apps.CdcPortalConfig',
+    'apps.pdrrmo_portal.apps.PdrrmoPortalConfig',
+    'apps.mdrrmo_portal.apps.MdrrmoPortalConfig',
 ]
 
 MIDDLEWARE = [
@@ -71,6 +72,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'users.context_processors.notifications_processor',
+                'apps.cdc_portal.context_processors.reservist_approval_notification',
             ],
         },
     },
@@ -137,6 +139,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Crispy Forms
 CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
+
+# Cache (used by django-ratelimit for signup rate limiting)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# Anti-bot: signup rate limits (3/min and 20/h enforced in users.views.register_view)
+# django-ratelimit uses the default cache above
 
 # DRF
 REST_FRAMEWORK = {

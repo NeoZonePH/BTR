@@ -4,7 +4,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lphm.settings')
 django.setup()
 
-from reservist_portal.models import Incident
+from apps.reservist_portal.models import Incident
 from users.models import User
 from django.test import Client
 

@@ -5,7 +5,7 @@
 
 {% block auth_content %}
 <div class="auth-wrapper">
-    <div class="auth-card" style="max-width:560px;">
+    <div class="auth-card auth-card--register">
         <div class="auth-logo">
             <h1>TARGET</h1>
             <p>Reservist Registration</p>
@@ -24,25 +24,25 @@
         </div>
         {% endif %}
 
-        <form method="post" class="glass-form">
+        <form method="post" class="glass-form register-form">
             {% csrf_token %}
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label>Username</label>
+            <div class="row register-form-row">
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label">Username</label>
                     {{ form.username }}
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label>Full Name</label>
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label">Full Name</label>
                     {{ form.full_name }}
                 </div>
             </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label>Rank</label>
+            <div class="row register-form-row">
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label">Rank</label>
                     {{ form.rank }}
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label>AFPSN</label>
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label">AFPSN</label>
                     {{ form.afpsn }}
                 </div>
             </div>
@@ -54,29 +54,29 @@
             </div>
 
             <!-- Address: Cascading dropdowns from database -->
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label>Region</label>
+            <div class="row register-form-row">
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label">Region</label>
                     <select name="region" id="addr_region" class="form-select" required>
                         <option value="">Select Region</option>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label>Province</label>
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label">Province</label>
                     <select name="province" id="addr_province" class="form-select" required>
                         <option value="">Select Province</option>
                     </select>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label>City / Municipality</label>
+            <div class="row register-form-row">
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label">City / Municipality</label>
                     <select name="municipality" id="addr_city" class="form-select" required>
                         <option value="">Select City/Municipality</option>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label>Barangay</label>
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label">Barangay</label>
                     <select name="barangay" id="addr_barangay" class="form-select">
                         <option value="">Select Barangay</option>
                     </select>
@@ -84,29 +84,28 @@
             </div>
 
             <!-- RCDG / CDC Cascading Dropdowns -->
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label>RCDG <small style="color:var(--text-muted);">(Regional Community Defense
-                            Group)</small></label>
+            <div class="row register-form-row">
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label" title="Regional Community Defense Group">RCDG</label>
                     <select name="assigned_rcdg" id="sel_rcdg" class="form-select" required>
                         <option value="">Select RCDG</option>
                     </select>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label>CDC <small style="color:var(--text-muted);">(Community Defense Center)</small></label>
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label" title="Community Defense Center">CDC</label>
                     <select name="assigned_cdc" id="sel_cdc" class="form-select" required>
                         <option value="">Select CDC</option>
                     </select>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label>Password</label>
+            <div class="row register-form-row">
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label">Password</label>
                     {{ form.password1 }}
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label>Confirm Password</label>
+                <div class="col-md-6 mb-3 register-form-col">
+                    <label class="register-form-label">Confirm Password</label>
                     {{ form.password2 }}
                 </div>
             </div>

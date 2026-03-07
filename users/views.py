@@ -1,13 +1,47 @@
+import logging
+import time
+from datetime import date
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from decimal import Decimal, InvalidOperation
 from django.urls import reverse
+from django_ratelimit.decorators import ratelimit
 
-from .forms import ReservistRegistrationForm, UserLoginForm
-from .models import User, Notification
+from .forms import ReservistRegistrationForm, UserLoginForm, SIGNUP_FORM_MIN_SECONDS
+from .models import User, Notification, SignupAttempt
+
+logger = logging.getLogger(__name__)
+
+# Maximum successful signups per IP per day (anti-bot)
+MAX_SIGNUPS_PER_IP_PER_DAY = 5
+
+
+def get_client_ip(request):
+    """Return client IP; respects X-Forwarded-For when behind a proxy."""
+    xff = request.META.get('HTTP_X_FORWARDED_FOR', '').strip()
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '') or '0.0.0.0'
+
+
+def _log_blocked_signup(request, reason, username='', email=''):
+    """Record blocked signup attempt for monitoring; also log to Python logger."""
+    ip = get_client_ip(request)
+    SignupAttempt.objects.create(
+        ip_address=ip,
+        username=(username or '')[:150],
+        email=(email or '')[:254],
+        success=False,
+        block_reason=reason[:255],
+    )
+    logger.warning(
+        'Signup blocked: ip=%s reason=%s username=%s email=%s',
+        ip, reason, username or '(none)', email or '(none)',
+    )
 
 
 # ════════════════════════════════════════════════════════════════
@@ -102,13 +136,83 @@ def login_view(request):
     return render(request, 'users/registration/login.html', {'form': form})
 
 
+@ratelimit(key=lambda g, r: get_client_ip(r), rate='20/h', method='POST', block=False)
+@ratelimit(key=lambda g, r: get_client_ip(r), rate='3/m', method='POST', block=False)
 def register_view(request):
-    """Public registration — Reservists only. Must be approved by CDC."""
+    """
+    Public registration — Reservists only. Must be approved by CDC.
+    Anti-bot: rate limit (3/min, 20/h per IP), honeypot, form timing,
+    disposable email, suspicious username, IP daily signup cap. Returns 403 when blocked.
+    """
     if request.user.is_authenticated:
         return redirect(request.user.dashboard_url)
 
-    form = ReservistRegistrationForm()
+    # ─── POST: run all server-side checks before form validation ───
     if request.method == 'POST':
+        # Rate limit (decorators set request.limited when exceeded)
+        if getattr(request, 'limited', False):
+            _log_blocked_signup(request, 'rate_limit')
+            return HttpResponseForbidden(
+                '<h1>403 Forbidden</h1><p>Too many attempts. Try again later.</p>',
+                content_type='text/html',
+            )
+
+        # Honeypot: hidden field must be empty
+        if request.POST.get('middle_name', '').strip():
+            _log_blocked_signup(
+                request, 'honeypot',
+                username=request.POST.get('username', ''),
+                email=request.POST.get('email', ''),
+            )
+            return HttpResponseForbidden(
+                '<h1>403 Forbidden</h1><p>Invalid request.</p>',
+                content_type='text/html',
+            )
+
+        # Form submission timing: must have been on page at least SIGNUP_FORM_MIN_SECONDS
+        try:
+            ts_str = request.POST.get('form_load_timestamp', '').strip()
+            if not ts_str:
+                _log_blocked_signup(request, 'missing_form_timestamp')
+                return HttpResponseForbidden(
+                    '<h1>403 Forbidden</h1><p>Invalid request.</p>',
+                    content_type='text/html',
+                )
+            elapsed = time.time() - float(ts_str)
+            if elapsed < SIGNUP_FORM_MIN_SECONDS:
+                _log_blocked_signup(
+                    request, 'form_submitted_too_fast',
+                    username=request.POST.get('username', ''),
+                    email=request.POST.get('email', ''),
+                )
+                return HttpResponseForbidden(
+                    '<h1>403 Forbidden</h1><p>Please wait a moment before submitting.</p>',
+                    content_type='text/html',
+                )
+        except (ValueError, TypeError):
+            _log_blocked_signup(request, 'invalid_form_timestamp')
+            return HttpResponseForbidden(
+                '<h1>403 Forbidden</h1><p>Invalid request.</p>',
+                content_type='text/html',
+            )
+
+        # IP-based daily signup limit
+        ip = get_client_ip(request)
+        today = date.today()
+        successful_today = SignupAttempt.objects.filter(
+            ip_address=ip, success=True, created_at__date=today,
+        ).count()
+        if successful_today >= MAX_SIGNUPS_PER_IP_PER_DAY:
+            _log_blocked_signup(
+                request, 'ip_daily_limit_exceeded',
+                username=request.POST.get('username', ''),
+                email=request.POST.get('email', ''),
+            )
+            return HttpResponseForbidden(
+                '<h1>403 Forbidden</h1><p>Maximum signups from your network for today reached. Try again tomorrow.</p>',
+                content_type='text/html',
+            )
+
         form = ReservistRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
@@ -127,13 +231,28 @@ def register_view(request):
                 if cdc_obj:
                     user.assigned_cdc = cdc_obj
             user.save()
+
+            # Record successful signup for IP daily limit
+            SignupAttempt.objects.create(
+                ip_address=ip,
+                success=True,
+            )
+
             messages.info(
                 request,
                 '🎉 Registration successful! Your account is pending approval. '
                 'Your CDC administrator will review and activate your account.',
             )
             return redirect('login')
-    return render(request, 'users/registration/register.html', {'form': form})
+    else:
+        form = ReservistRegistrationForm()
+
+    # GET or form errors: pass timestamp so template can send it back on submit
+    form_load_timestamp = str(time.time())
+    return render(request, 'users/registration/register.html', {
+        'form': form,
+        'form_load_timestamp': form_load_timestamp,
+    })
 
 
 def logout_view(request):
