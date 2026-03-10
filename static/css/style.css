@@ -966,6 +966,18 @@ a:hover {
   color: #1e293b !important;
 }
 
+/* Hide map legend and incident list panel on mobile (all accounts dashboard) */
+@media (max-width: 991px) {
+  .map-legend-ctrl,
+  .map-incident-list-panel,
+  .map-incident-list-panel.is-fullscreen,
+  .maplibregl-ctrl-group.maplibregl-ctrl-bottom-right,
+  .maplibregl-ctrl-group.maplibregl-ctrl-top-left {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+
 /* ── Map Markers ── */
 .hq-marker {
   width: 18px;

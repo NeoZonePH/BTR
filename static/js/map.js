@@ -348,6 +348,10 @@ class MapLegendControl {
                 .map-legend-row:last-child { margin-bottom: 0; }
                 .map-legend-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; flex-shrink: 0; }
                 .map-legend-label { white-space: nowrap; }
+                @media (max-width: 991px) {
+                    .map-legend-ctrl,
+                    .maplibregl-ctrl-group.maplibregl-ctrl-bottom-right { display: none !important; visibility: hidden !important; }
+                }
             `;
             document.head.appendChild(css);
         }
@@ -830,6 +834,11 @@ class IncidentListControl {
                 }
                 .map-incident-list-panel #mapIncidentListItems::-webkit-scrollbar-thumb:hover {
                     background: rgba(255,255,255,0.35);
+                }
+                @media (max-width: 991px) {
+                    .map-incident-list-panel,
+                    .map-incident-list-panel.is-fullscreen,
+                    .maplibregl-ctrl-group.maplibregl-ctrl-top-left { display: none !important; visibility: hidden !important; }
                 }
             `;
             document.head.appendChild(style);
