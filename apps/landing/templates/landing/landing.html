@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TARGET — AI-powered Tactical Automated Response & Geolocation Emergency Tracker. Enterprise-grade incident management for Reserve Command and DRRMO.">
+  <title>TARGET — AI-Powered Emergency Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/landing.css' %}">
+</head>
+<body class="landing">
+  <div class="landing__bg" aria-hidden="true"></div>
+  <div class="landing__grid" aria-hidden="true"></div>
+
+  <div class="landing__inner">
+    <nav class="landing__nav">
+      <a href="{% url 'home' %}" class="landing__logo">
+        <span class="landing__logo-crosshair" aria-hidden="true"></span>
+        TAR<span>GET</span>
+      </a>
+      <div class="landing__nav-links">
+        <a href="{% url 'login' %}" class="landing__nav-login">Sign in</a>
+        <a href="{% url 'register' %}" class="landing__nav-register">Register</a>
+      </div>
+    </nav>
+
+    <header class="landing__hero">
+      <div class="landing__badge">
+        <i class="bi bi-cpu-fill"></i>
+        AI-Powered Platform
+      </div>
+      <h1>Tactical Automated Response & <span>Geolocation Emergency Tracker</span></h1>
+      <p>Government-grade incident management powered by AI. Real-time coordination for Reserve Command, RCDG, CDC, and DRRMO—all in one enterprise platform.</p>
+      <div class="landing__hero-cta">
+        <a href="{% url 'register' %}" class="landing__btn landing__btn--primary">
+          <i class="bi bi-person-plus-fill"></i> Get started
+        </a>
+        <a href="{% url 'login' %}" class="landing__btn landing__btn--outline">
+          <i class="bi bi-box-arrow-in-right"></i> Sign in
+        </a>
+      </div>
+    </header>
+
+    <section class="landing__section">
+      <h2 class="landing__section-title">Built for enterprise</h2>
+      <p class="landing__section-sub">One platform for reporting, tracking, and responding to emergencies—with AI-driven insights at every step.</p>
+      <div class="landing__features">
+        <article class="landing__feature">
+          <div class="landing__feature-icon"><i class="bi bi-geo-alt-fill"></i></div>
+          <h3>Real-time geolocation</h3>
+          <p>Live incident maps, responder tracking, and muster attendance with WebSocket updates—no refresh required.</p>
+        </article>
+        <article class="landing__feature">
+          <div class="landing__feature-icon"><i class="bi bi-cpu"></i></div>
+          <h3>AI-powered insights</h3>
+          <p>Smart summaries, analytics, and reporting powered by AI to help command make faster, data-driven decisions.</p>
+        </article>
+        <article class="landing__feature">
+          <div class="landing__feature-icon"><i class="bi bi-shield-check"></i></div>
+          <h3>Enterprise-grade security</h3>
+          <p>Role-based access, audit trails, and secure workflows for Reserve Command, RCDG, CDC, and DRRMO.</p>
+        </article>
+      </div>
+    </section>
+
+    <div class="landing__stats">
+      <div>
+        <div class="landing__stat-value">AI</div>
+        <div class="landing__stat-label">Powered analytics</div>
+      </div>
+      <div>
+        <div class="landing__stat-value">24/7</div>
+        <div class="landing__stat-label">Real-time alerts</div>
+      </div>
+      <div>
+        <div class="landing__stat-value">Multi-role</div>
+        <div class="landing__stat-label">RESCOM to Reservist</div>
+      </div>
+    </div>
+
+    <section class="landing__cta-block">
+      <h2>Ready to coordinate with confidence?</h2>
+      <p>Join the AI-powered platform trusted by Reserve Command and disaster risk offices.</p>
+      <a href="{% url 'register' %}" class="landing__btn landing__btn--primary">
+        <i class="bi bi-person-plus-fill"></i> Create account
+      </a>
+    </section>
+
+    <footer class="landing__footer">
+      <p>&copy; TARGET — Tactical Automated Response & Geolocation Emergency Tracker. AI-powered incident management.</p>
+      <p style="margin-top:8px;"><a href="{% url 'login' %}">Sign in</a> &middot; <a href="{% url 'register' %}">Register</a></p>
+    </footer>
+  </div>
+</body>
+</html>

@@ -140,6 +140,18 @@
                 </div>
             </div>
 
+            <div class="mb-3">
+                <div class="form-check">
+                    {{ form.agree_terms }}
+                    <label class="form-check-label" for="id_agree_terms">
+                        I agree to the <a href="javascript:void(0)" class="text-decoration-underline" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a>
+                    </label>
+                </div>
+                {% if form.agree_terms.errors %}
+                <div class="text-danger small mt-1">{{ form.agree_terms.errors.0 }}</div>
+                {% endif %}
+            </div>
+
             <div class="alert mb-3"
                 style="background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);font-size:0.8rem;color:var(--text-secondary);">
                 <i class="bi bi-info-circle-fill" style="color:var(--accent);"></i>
@@ -154,6 +166,71 @@
         <div class="text-center" style="font-size:0.85rem;">
             <span style="color:var(--text-muted);">Already have an account?</span>
             <a href="{% url 'login' %}">Login here</a>
+        </div>
+    </div>
+</div>
+
+<!-- Terms and Conditions Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border-color);">
+            <div class="modal-header" style="border-bottom:1px solid var(--border-color);">
+                <h5 class="modal-title" id="termsModalLabel" style="font-weight:700;">
+                    <i class="bi bi-file-text-fill" style="color:var(--accent);"></i> Terms and Conditions
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="color:var(--text-secondary);font-size:0.9rem;line-height:1.6;">
+                <p class="mb-3"><strong>Effective Date:</strong> Upon registration</p>
+
+                <p class="mb-3">By registering as a Reservist in the TARGET (Tactical Automated Response & Geolocation Emergency Tracker) platform, you acknowledge and agree to the following terms:</p>
+
+                <h6 class="mt-4 mb-2" style="color:var(--text-primary);">1. Information Collection and Use</h6>
+                <p>You consent to the collection, storage, and use of your personal information by the platform and the Reserve Command organization. This includes:</p>
+                <ul>
+                    <li>Your registration details (name, rank, contact information, and organizational affiliation)</li>
+                    <li>Your address and location data (region, province, municipality, barangay)</li>
+                    <li>Your current geographic location (latitude and longitude) when you respond to an incident or mark yourself as present during muster activities</li>
+                </ul>
+
+                <h6 class="mt-4 mb-2" style="color:var(--text-primary);">2. Purpose of Data Use</h6>
+                <p>Your information is used solely to:</p>
+                <ul>
+                    <li>Enable effective incident response coordination and real-time tracking</li>
+                    <li>Support muster attendance and readiness verification</li>
+                    <li>Support the Reserve Command and affiliated DRRMO in their mission to serve the community</li>
+                </ul>
+
+                <h6 class="mt-4 mb-2" style="color:var(--text-primary);">3. Benefits to You</h6>
+                <p>In exchange, you gain access to:</p>
+                <ul>
+                    <li>Tools to report incidents and contribute to emergency response</li>
+                    <li>Visibility and coordination support when responding to incidents</li>
+                    <li>Recognition of your service and participation in muster activities</li>
+                </ul>
+
+                <h6 class="mt-4 mb-2" style="color:var(--text-primary);">4. Benefits to the Organization</h6>
+                <p>The organization uses this data to:</p>
+                <ul>
+                    <li>Coordinate response efforts efficiently</li>
+                    <li>Maintain accurate records for accountability and reporting</li>
+                    <li>Improve the platform and services for all users</li>
+                </ul>
+
+                <h6 class="mt-4 mb-2" style="color:var(--text-primary);">5. Developer and Platform</h6>
+                <p>The platform developers and operators commit to:</p>
+                <ul>
+                    <li>Maintaining the security and integrity of your data</li>
+                    <li>Using your information only for the stated purposes</li>
+                    <li>Supporting the platform so it remains reliable and useful for all users</li>
+                </ul>
+
+                <h6 class="mt-4 mb-2" style="color:var(--text-primary);">6. Agreement</h6>
+                <p>By checking the box and completing registration, you confirm that you have read, understood, and agree to these Terms and Conditions. You understand that your information will be recorded in the system and that your location may be shared when you respond to incidents or participate in muster activities.</p>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--border-color);">
+                <button type="button" class="btn-target btn-target-primary" data-bs-dismiss="modal" onclick="document.getElementById('id_agree_terms').checked = true;">I Understand</button>
+            </div>
         </div>
     </div>
 </div>

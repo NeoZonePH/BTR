@@ -46,6 +46,13 @@ class ReservistRegistrationForm(UserCreationForm):
         }),
     )
 
+    # Required: user must agree to Terms and Conditions (label rendered in template with link)
+    agree_terms = forms.BooleanField(
+        required=True,
+        error_messages={'required': 'You must agree to the Terms and Conditions to register.'},
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():

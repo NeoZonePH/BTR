@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'channels',
     'disposable_email_checker',  # Anti-bot: block disposable/temporary email domains
     # Local apps
+    'apps.landing.apps.LandingConfig',
     'users.apps.UsersConfig',
     'references.apps.ReferencesConfig',
     'apps.reservist_portal.apps.ReservistPortalConfig',
@@ -63,7 +64,7 @@ ROOT_URLCONF = 'target.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'apps' / 'landing' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

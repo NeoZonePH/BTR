@@ -2,8 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Auth
-    path('', views.dashboard_redirect, name='home'),
+    # Auth (home/landing is in apps.landing)
     path('dashboard/', views.dashboard_redirect, name='dashboard'),
     path('accounts/login/', views.login_view, name='login'),
     path('accounts/register/', views.register_view, name='register'),

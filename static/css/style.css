@@ -874,6 +874,25 @@ a:hover {
   line-height: 1.5;
 }
 
+/* Registration/login: lighter placeholders for visibility on dark inputs */
+.auth-wrapper .form-control::placeholder {
+  color: rgba(203, 213, 225, 0.9);
+}
+
+.auth-wrapper .form-control::-webkit-input-placeholder {
+  color: rgba(203, 213, 225, 0.9);
+}
+
+.auth-wrapper .form-control::-moz-placeholder {
+  color: rgba(203, 213, 225, 0.9);
+}
+
+[data-theme="light"] .auth-wrapper .form-control::placeholder,
+[data-theme="light"] .auth-wrapper .form-control::-webkit-input-placeholder,
+[data-theme="light"] .auth-wrapper .form-control::-moz-placeholder {
+  color: rgba(100, 116, 139, 0.85);
+}
+
 /* ════════════════════════════════════════════════════════════════
    AI SUMMARY
    ════════════════════════════════════════════════════════════════ */
