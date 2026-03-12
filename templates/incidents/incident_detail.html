@@ -83,8 +83,9 @@
                         style="color:var(--text-muted);text-transform:uppercase;font-weight:700;font-size:0.7rem;">Evidence</small>
                     <div class="mt-2">
                         {% if incident.is_video_evidence %}
-                        <video controls style="max-width:100%;border-radius:var(--radius-sm);">
-                            <source src="{{ incident.video_upload.url }}">
+                        <video controls playsinline style="max-width:100%;border-radius:var(--radius-sm);">
+                            <source src="{{ incident.video_upload.url }}" type="{{ incident.evidence_media_type|default:'video/mp4' }}">
+                            Your browser does not support the video tag.
                         </video>
                         {% else %}
                         <img src="{{ incident.video_upload.url }}" alt="Evidence"

@@ -79,6 +79,35 @@ class Incident(models.Model):
     def __str__(self):
         return f"{self.title} - {self.get_incident_type_display()} ({self.get_status_display()})"
 
+    # Video file extensions (for evidence display: use <video> vs <img>)
+    VIDEO_EXTENSIONS = frozenset({'mp4', 'avi', 'mov', 'mkv', 'wmv', 'webm'})
+
+    @property
+    def is_video_evidence(self):
+        """True if video_upload is a video file (so detail page uses <video> not <img>)."""
+        if not self.video_upload:
+            return False
+        name = (self.video_upload.name or '').lower()
+        ext = name.rsplit('.', 1)[-1] if '.' in name else ''
+        return ext in self.VIDEO_EXTENSIONS
+
+    @property
+    def evidence_media_type(self):
+        """Return MIME type for the evidence file for use in <video> or <img>."""
+        if not self.video_upload:
+            return None
+        name = (self.video_upload.name or '').lower()
+        ext = name.rsplit('.', 1)[-1] if '.' in name else ''
+        video_mimes = {
+            'mp4': 'video/mp4',
+            'webm': 'video/webm',
+            'avi': 'video/x-msvideo',
+            'mov': 'video/quicktime',
+            'mkv': 'video/x-matroska',
+            'wmv': 'video/x-ms-wmv',
+        }
+        return video_mimes.get(ext)
+
     @property
     def marker_color(self):
         """Return marker color based on incident type."""

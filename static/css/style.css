@@ -978,6 +978,15 @@ a:hover {
   }
 }
 
+/* Reservist dashboard: hide map legend on mobile/cellphone */
+@media (max-width: 767px) {
+  .reservist-dashboard-map .map-legend-ctrl,
+  .reservist-dashboard-map .maplibregl-ctrl.map-legend-ctrl {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+
 /* ── Map Markers ── */
 .hq-marker {
   width: 18px;
