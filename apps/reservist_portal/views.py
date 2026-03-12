@@ -5,10 +5,14 @@ from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
 from .models import Incident, AISummary
 from .forms import IncidentForm
 from .notifications import notify_on_incident
 from .ai_service import get_incident_stats, generate_ai_summary, _serialize_stats
+from .consumers import INCIDENT_ALERTS_GROUP
 from users.models import ActivityLog
 from apps.cdc_portal.models import Muster, MusterEnrollment, MusterNotification
 
@@ -94,6 +98,19 @@ def create_incident(request):
                 action=ActivityLog.Action.CREATE_INCIDENT,
                 details=f"Submitted incident: {incident.title} ({incident.get_incident_type_display()})"
             )
+            # Broadcast to all dashboards so other accounts hear alarm without refresh
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                async_to_sync(channel_layer.group_send)(
+                    INCIDENT_ALERTS_GROUP,
+                    {
+                        'type': 'new_incident_alert',
+                        'incident_id': incident.pk,
+                        'title': incident.title,
+                        'incident_type': incident.incident_type,
+                        'reservist_id': incident.reservist_id,
+                    }
+                )
             # Notify relevant personnel
             count = notify_on_incident(incident)
             messages.success(

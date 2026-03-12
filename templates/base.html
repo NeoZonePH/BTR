@@ -42,6 +42,7 @@
 
 <body>
   {% if user.is_authenticated %}
+  <script>window.__CURRENT_USER_ID__ = {{ user.id|default:0 }};</script>
   <!-- ═══ Sidebar ═══ -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">

@@ -966,22 +966,20 @@ a:hover {
   color: #1e293b !important;
 }
 
-/* Hide map legend and incident list panel on mobile (all accounts dashboard) */
-@media (max-width: 991px) {
+/* Hide map legend and incident list panel on mobile (all dashboards) */
+@media (max-width: 767px) {
   .map-legend-ctrl,
+  .maplibregl-ctrl.map-legend-ctrl,
   .map-incident-list-panel,
   .map-incident-list-panel.is-fullscreen,
-  .maplibregl-ctrl-group.maplibregl-ctrl-bottom-right,
-  .maplibregl-ctrl-group.maplibregl-ctrl-top-left {
+  .reservist-dashboard-map .map-legend-ctrl,
+  .reservist-dashboard-map .maplibregl-ctrl.map-legend-ctrl {
     display: none !important;
     visibility: hidden !important;
   }
-}
-
-/* Reservist dashboard: hide map legend on mobile/cellphone */
-@media (max-width: 767px) {
-  .reservist-dashboard-map .map-legend-ctrl,
-  .reservist-dashboard-map .maplibregl-ctrl.map-legend-ctrl {
+  /* Hide the control groups that wrap legend (bottom-right) and incident list (top-left) on mobile */
+  .maplibregl-ctrl-group.maplibregl-ctrl-bottom-right,
+  .maplibregl-ctrl-group.maplibregl-ctrl-top-left {
     display: none !important;
     visibility: hidden !important;
   }

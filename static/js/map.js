@@ -170,6 +170,82 @@ function initIncidentMap(containerId, apiUrl) {
             debounce = setTimeout(() => loadIncidents(apiUrl), 400);
         });
     }
+
+    // Connect to incident-alerts WebSocket so other accounts hear alarm when a reservist submits an incident
+    connectIncidentAlerts(apiUrl);
+}
+
+/**
+ * Play a short alarm sound (two-tone beep) using Web Audio API. No external audio file required.
+ */
+function playIncidentAlarm() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const play = (freq, start, duration) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = freq;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.15, start);
+            gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+            osc.start(start);
+            osc.stop(start + duration);
+        };
+        play(880, 0, 0.15);
+        play(880, 0.25, 0.15);
+        play(880, 0.5, 0.2);
+    } catch (e) {
+        console.warn('Incident alarm playback failed:', e);
+    }
+}
+
+/**
+ * Connect to ws/incident-alerts/ and on new_incident_alert play alarm and refresh incidents.
+ * Skips playing alarm if the current user is the one who submitted (reservist).
+ */
+function connectIncidentAlerts(apiUrl) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = protocol + '//' + window.location.host + '/ws/incident-alerts/';
+    let socket = null;
+    let reconnectTimeout = null;
+
+    function connect() {
+        if (socket && socket.readyState === WebSocket.OPEN) return;
+        try {
+            socket = new WebSocket(wsUrl);
+            socket.onmessage = function (event) {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type !== 'new_incident_alert') return;
+                    const currentUserId = window.__CURRENT_USER_ID__;
+                    const reservistId = msg.reservist_id;
+                    if (currentUserId != null && String(reservistId) === String(currentUserId)) return;
+                    playIncidentAlarm();
+                    if (typeof loadIncidents === 'function' && apiUrl) loadIncidents(apiUrl);
+                } catch (e) {
+                    console.warn('Incident alert message parse error:', e);
+                }
+            };
+            socket.onclose = function () {
+                socket = null;
+                if (!reconnectTimeout) {
+                    reconnectTimeout = setTimeout(function () {
+                        reconnectTimeout = null;
+                        connect();
+                    }, 5000);
+                }
+            };
+            socket.onerror = function () {
+                if (socket) socket.close();
+            };
+        } catch (e) {
+            console.warn('Incident alerts WebSocket connect failed:', e);
+        }
+    }
+
+    connect();
 }
 
 /**
