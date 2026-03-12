@@ -63,6 +63,14 @@
         class="nav-link {% if request.resolver_match.url_name == 'incident_list' %}active{% endif %}">
         <i class="bi bi-exclamation-triangle-fill"></i> My Incidents
       </a>
+      <a href="{% url 'reservist:mustering_list' %}"
+        class="nav-link {% if request.resolver_match.url_name == 'mustering_list' %}active{% endif %}"
+        style="display:flex;align-items:center;gap:6px;">
+        <i class="bi bi-calendar-event-fill"></i> Mustering
+        {% if muster_notification_count|default:0 > 0 %}
+        <span class="badge rounded-pill" style="background:var(--accent);color:#000;font-size:0.7rem;">{{ muster_notification_count }}</span>
+        {% endif %}
+      </a>
       <a href="{% url 'reservist:recycle_bin' %}"
         class="nav-link {% if request.resolver_match.url_name == 'recycle_bin' %}active{% endif %}">
         <i class="bi bi-trash-fill" style="color:var(--danger);"></i> Recycle Bin
@@ -184,6 +192,10 @@
         <span class="badge rounded-pill" style="background:var(--accent);color:#000;font-size:0.7rem;">{{ pending_reservist_approval_count }}</span>
         {% endif %}
       </a>
+      <a href="{% url 'cdc:muster_list' %}"
+        class="nav-link {% if 'muster' in request.resolver_match.url_name %}active{% endif %}">
+        <i class="bi bi-calendar-event-fill"></i> Mustering
+      </a>
       {% endif %}
 
       <div class="nav-section mt-3">Analytics</div>
@@ -219,6 +231,13 @@
         <h5>{% block topbar_title %}Dashboard{% endblock %}</h5>
       </div>
       <div class="topbar-right">
+        <!-- Mustering notification (reservists only) -->
+        {% if user.role == 'RESERVIST' and muster_notification_count|default:0 > 0 %}
+        <a href="{% url 'reservist:mustering_list' %}" class="notification-bell" title="Mustering schedules" style="color:var(--text-primary);text-decoration:none;position:relative;display:flex;align-items:center;">
+          <i class="bi bi-calendar-event-fill" style="font-size:1.2rem;"></i>
+          <span class="notification-badge">{{ muster_notification_count }}</span>
+        </a>
+        {% endif %}
         <!-- Notification Bell -->
         <div class="notification-bell" onclick="toggleNotifications()">
           <i class="bi bi-bell-fill" style="font-size:1.2rem;"></i>

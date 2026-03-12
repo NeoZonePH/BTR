@@ -26,4 +26,11 @@ urlpatterns = [
     path('accounts/manage/pending/', views.pending_reservists, name='pending_reservists'),
     path('accounts/manage/pending/<int:pk>/approve/', views.approve_reservist, name='approve_reservist'),
     path('accounts/manage/pending/<int:pk>/reject/', views.reject_reservist, name='reject_reservist'),
+
+    # Mustering (CRUD; auto-enrolls reservists under this CDC)
+    path('mustering/', views.muster_list, name='muster_list'),
+    path('mustering/create/', views.muster_create, name='muster_create'),
+    path('mustering/<int:pk>/', views.muster_detail, name='muster_detail'),
+    path('mustering/<int:pk>/edit/', views.muster_edit, name='muster_edit'),
+    path('mustering/<int:pk>/delete/', views.muster_delete, name='muster_delete'),
 ]

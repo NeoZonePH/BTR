@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Muster{% endblock %}
+{% block topbar_title %}Delete Muster{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in">
+        <h2>Delete Muster</h2>
+        <p>This action cannot be undone. All enrollment records for this muster will be removed.</p>
+    </div>
+
+    <div class="glass-card animate-fade-in" style="max-width:480px;">
+        <p class="mb-3"><strong>{{ muster.title }}</strong> — {{ muster.muster_date|date:"M d, Y" }}</p>
+        <p class="text-muted small mb-3">{{ muster.enrollments.count }} reservist(s) are enrolled.</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn-target btn-target-danger">Delete Muster</button>
+                <a href="{% url 'cdc:muster_detail' muster.pk %}" class="btn-target btn-target-outline">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

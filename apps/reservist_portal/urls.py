@@ -16,4 +16,6 @@ urlpatterns = [
     path('analytics/', views.analytics_dashboard, name='analytics_dashboard'),
     path('analytics/generate-summary/', views.generate_summary, name='generate_summary'),
     path('analytics/chart-data/', views.chart_data, name='chart_data'),
+    path('mustering/', views.mustering_list, name='mustering_list'),
+    path('mustering/<int:enrollment_id>/mark-present/', views.muster_mark_present, name='muster_mark_present'),
 ]

@@ -10,6 +10,7 @@ from .forms import IncidentForm
 from .notifications import notify_on_incident
 from .ai_service import get_incident_stats, generate_ai_summary, _serialize_stats
 from users.models import ActivityLog
+from apps.cdc_portal.models import Muster, MusterEnrollment, MusterNotification
 
 
 def role_required(role):
@@ -343,3 +344,76 @@ def restore_incident(request, pk):
             )
         messages.success(request, 'Incident restored successfully.')
     return redirect('reservist:recycle_bin')
+
+
+# --- Mustering (incoming schedules; mark present on day of muster) ---
+
+
+@role_required('RESERVIST')
+def mustering_list(request):
+    """Reservist: list incoming mustering schedules (muster_date >= today)."""
+    from django.utils import timezone
+    today = timezone.localdate()
+    # Mark all muster notifications as read when reservist visits this page
+    MusterNotification.objects.filter(
+        reservist=request.user,
+        read_at__isnull=True,
+    ).update(read_at=timezone.now())
+    enrollments = (
+        MusterEnrollment.objects
+        .filter(reservist=request.user)
+        .select_related('muster')
+        .filter(muster__muster_date__gte=today)
+        .order_by('muster__muster_date', 'muster__title')
+    )
+    return render(request, 'reservist_portal/mustering/mustering_list.html', {
+        'enrollments': enrollments,
+        'today': today,
+    })
+
+
+@role_required('RESERVIST')
+def muster_mark_present(request, enrollment_id):
+    """Reservist: mark self as present for a muster (only on muster date); submit lat/lng."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+    enrollment = get_object_or_404(
+        MusterEnrollment,
+        pk=enrollment_id,
+        reservist=request.user,
+    )
+    today = timezone.localdate()
+    if enrollment.muster.muster_date != today:
+        return JsonResponse({
+            'success': False,
+            'error': 'You can only mark present on the day of the muster.',
+        }, status=400)
+
+    import json
+    if request.content_type == 'application/json' and request.body:
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            data = request.POST
+    else:
+        data = request.POST
+
+    lat = data.get('latitude') or data.get('lat')
+    lng = data.get('longitude') or data.get('lng')
+    if lat is None or lng is None:
+        return JsonResponse({'success': False, 'error': 'Latitude and longitude required.'}, status=400)
+
+    try:
+        from decimal import Decimal
+        lat = Decimal(str(lat))
+        lng = Decimal(str(lng))
+    except Exception:
+        return JsonResponse({'success': False, 'error': 'Invalid latitude or longitude.'}, status=400)
+
+    enrollment.status = MusterEnrollment.EnrollmentStatus.PRESENT
+    enrollment.latitude = lat
+    enrollment.longitude = lng
+    enrollment.save()
+
+    return JsonResponse({'success': True, 'message': 'Marked as present.'})

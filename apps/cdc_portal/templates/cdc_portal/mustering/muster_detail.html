@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+
+{% block title %}Muster: {{ muster.title }}{% endblock %}
+{% block topbar_title %}Muster: {{ muster.title }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h2>{{ muster.title }}</h2>
+            <p class="mb-0">
+                {{ muster.muster_date|date:"F d, Y" }}
+                {% if muster.location %} · {{ muster.location }}{% endif %}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'cdc:muster_edit' muster.pk %}" class="btn-target btn-target-outline" style="padding:8px 18px;font-size:0.85rem;">
+                <i class="bi bi-pencil-fill"></i> Edit
+            </a>
+            <a href="{% url 'cdc:muster_delete' muster.pk %}" class="btn-target btn-target-danger" style="padding:8px 18px;font-size:0.85rem;">
+                <i class="bi bi-trash-fill"></i> Delete
+            </a>
+            <a href="{% url 'cdc:muster_list' %}" class="btn-target btn-target-outline" style="padding:8px 18px;font-size:0.85rem;">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    {% if muster.activities %}
+    <div class="glass-card animate-fade-in mb-3">
+        <p class="mb-0" style="color:var(--text-muted);font-size:0.9rem;">{{ muster.activities }}</p>
+    </div>
+    {% endif %}
+
+    <div class="glass-card animate-fade-in mb-3">
+        <h6 class="mb-2" style="font-weight:700;"><i class="bi bi-map-fill" style="color:var(--accent);"></i> Present reservists — location map</h6>
+        <p class="text-muted small mb-2">Reservists who marked themselves present and shared their location.</p>
+        {% if not present_locations %}
+        <p class="small mb-2" style="color:var(--text-muted);">No locations yet. When reservists mark themselves present on the day of the muster (from their Mustering page), their positions will appear here.</p>
+        {% endif %}
+        <div id="musterMapWrapper" style="position:relative;height:400px;width:100%;border-radius:8px;overflow:hidden;background:var(--bg-glass, #1e293b);">
+            <div id="musterPresentMap" style="height:100%;width:100%;"></div>
+        </div>
+    </div>
+
+    <div class="glass-card animate-fade-in">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <h6 class="mb-0" style="font-weight:700;"><i class="bi bi-people-fill" style="color:var(--accent);"></i> Enrolled Reservists ({{ enrollments|length }})</h6>
+            <form method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reenroll">
+                <button type="submit" class="btn-target btn-target-outline btn-sm">Add new reservists to muster</button>
+            </form>
+        </div>
+        <p class="text-muted small mb-3">Reservists approved under your CDC were automatically enrolled when this muster was created. Use "Add new reservists" to enroll anyone who joined later.</p>
+        <div class="table-responsive">
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th>Reservist</th>
+                        <th>Rank</th>
+                        <th>Mobile</th>
+                        <th>Status</th>
+                        <th>Latitude</th>
+                        <th>Longitude</th>
+                        <th>Notes</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for enr in enrollments %}
+                    <tr>
+                        <td><strong>{{ enr.reservist.full_name }}</strong></td>
+                        <td style="font-size:0.82rem;">{{ enr.reservist.rank|default:"—" }}</td>
+                        <td style="font-size:0.82rem;">{{ enr.reservist.mobile_number|default:"—" }}</td>
+                        <td>
+                            <span class="badge-status {% if enr.status == 'PRESENT' %}badge-validated{% elif enr.status == 'ABSENT' %}badge-cancelled{% elif enr.status == 'EXCUSED' %}badge-pending{% else %}badge-pending{% endif %}">
+                                {{ enr.get_status_display }}
+                            </span>
+                        </td>
+                        <td style="font-size:0.82rem;">{% if enr.latitude is not None %}{{ enr.latitude }}{% else %}—{% endif %}</td>
+                        <td style="font-size:0.82rem;">{% if enr.longitude is not None %}{{ enr.longitude }}{% else %}—{% endif %}</td>
+                        <td style="font-size:0.82rem;">{{ enr.notes|default:"—" }}</td>
+                        <td>
+                            <form method="post" class="d-inline enrollment-update-form" data-enrollment-id="{{ enr.pk }}">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="update_enrollment">
+                                <input type="hidden" name="enrollment_id" value="{{ enr.pk }}">
+                                <select name="status" class="form-select form-select-sm" style="width:auto;display:inline-block;">
+                                    {% for value, label in enrollment_status_form.fields.status.choices %}
+                                    <option value="{{ value }}" {% if enr.status == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="text" name="notes" value="{{ enr.notes }}" class="form-control form-control-sm d-inline-block" style="width:120px;" placeholder="Note">
+                                <button type="submit" class="btn-target btn-target-outline btn-sm">Update</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center" style="color:var(--text-muted);padding:24px;">
+                            No reservists enrolled. Use "Add new reservists to muster" to enroll approved reservists.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+#musterMapWrapper .muster-map-search { position:absolute; top:10px; left:10px; z-index:2; display:flex; gap:4px; max-width:280px; }
+#musterMapWrapper .muster-map-search input { padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(10,14,23,0.9); color:#e2e8f0; font-size:0.85rem; flex:1; }
+#musterMapWrapper .muster-map-search input::placeholder { color:#94a3b8; }
+#musterMapWrapper .muster-map-search button { padding:6px 12px; border-radius:8px; border:none; background:var(--accent,#00d4ff); color:#0a0e17; font-weight:600; font-size:0.8rem; cursor:pointer; }
+#musterMapWrapper .muster-map-styles { position:absolute; bottom:10px; left:10px; z-index:2; display:flex; gap:4px; flex-wrap:wrap; }
+#musterMapWrapper .muster-map-styles button { padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(10,14,23,0.9); color:#e2e8f0; font-size:0.75rem; font-weight:600; cursor:pointer; }
+#musterMapWrapper .muster-map-styles button.active { background:var(--accent,#00d4ff); color:#0a0e17; border-color:var(--accent,#00d4ff); }
+/* Zero-size wrapper so MapLibre anchors the marker at the point (no sliding on zoom). Inner content is absolutely positioned. */
+.muster-present-marker, .muster-rcdg-marker, .muster-cdc-marker { position:relative; width:0; height:0; overflow:visible; }
+.muster-present-marker .pulse-ring { border-color:#3b82f6; animation: muster-marker-pulse 1.5s ease-out infinite; }
+.muster-present-marker .pulse-dot { background:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,0.4); }
+.muster-rcdg-marker .pulse-ring { border-color:#22c55e; animation: muster-marker-pulse 1.5s ease-out infinite; }
+.muster-rcdg-marker .pulse-dot { background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,0.4); }
+.muster-cdc-marker .pulse-ring { border-color:#a855f7; animation: muster-marker-pulse 1.5s ease-out infinite; }
+.muster-cdc-marker .pulse-dot { background:#a855f7; box-shadow:0 0 0 3px rgba(168,85,247,0.4); }
+.muster-present-marker .pulse-ring, .muster-rcdg-marker .pulse-ring, .muster-cdc-marker .pulse-ring { position:absolute; top:0; left:0; width:32px; height:32px; margin-left:-16px; margin-top:-16px; border:3px solid; border-radius:50%; opacity:0.6; }
+.muster-present-marker .pulse-dot, .muster-rcdg-marker .pulse-dot, .muster-cdc-marker .pulse-dot { position:absolute; top:0; left:0; width:14px; height:14px; margin-left:-7px; margin-top:-7px; border-radius:50%; }
+@keyframes muster-marker-pulse { 0% { transform:scale(0.6); opacity:0.8; } 100% { transform:scale(1.4); opacity:0; } }
+</style>
+<script>
+(function() {
+    var locations = {{ present_locations_json|safe }};
+    if (!Array.isArray(locations)) locations = [];
+    var rcdgLocation = null;
+    var cdcLocation = null;
+    try { rcdgLocation = {{ rcdg_location_json|safe }}; } catch (e) {}
+    try { cdcLocation = {{ cdc_location_json|safe }}; } catch (e) {}
+    if (rcdgLocation && (rcdgLocation.lat == null || rcdgLocation.lng == null)) rcdgLocation = null;
+    if (cdcLocation && (cdcLocation.lat == null || cdcLocation.lng == null)) cdcLocation = null;
+
+    var MAP_STYLES = {
+        dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+        light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+        osm: { version: 8, sources: { osm: { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '&copy; OpenStreetMap' } }, layers: [{ id: 'osm', type: 'raster', source: 'osm' }] },
+        satellite: { version: 8, sources: { satellite: { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, attribution: '&copy; Esri' } }, layers: [{ id: 'satellite', type: 'raster', source: 'satellite' }] }
+    };
+    var currentStyle = 'dark';
+
+    function createPulseMarkerElement(className) {
+        className = className || 'muster-present-marker';
+        var el = document.createElement('div');
+        el.className = className;
+        el.style.width = '0px';
+        el.style.height = '0px';
+        el.innerHTML = '<span class="pulse-ring"></span><span class="pulse-dot"></span>';
+        return el;
+    }
+
+    function initMap() {
+        if (typeof maplibregl === 'undefined') return;
+        var mapEl = document.getElementById('musterPresentMap');
+        if (!mapEl) return;
+        var allPoints = locations.slice();
+        if (rcdgLocation) allPoints.push({ lat: rcdgLocation.lat, lng: rcdgLocation.lng });
+        if (cdcLocation) allPoints.push({ lat: cdcLocation.lat, lng: cdcLocation.lng });
+        var defaultCenter = [121.774, 12.8797];
+        var zoom = 10;
+        if (allPoints.length === 1) {
+            defaultCenter = [allPoints[0].lng, allPoints[0].lat];
+            zoom = 14;
+        } else if (allPoints.length > 1) {
+            var lngs = allPoints.map(function(p) { return p.lng; });
+            var lats = allPoints.map(function(p) { return p.lat; });
+            defaultCenter = [(Math.min.apply(null, lngs) + Math.max.apply(null, lngs)) / 2, (Math.min.apply(null, lats) + Math.max.apply(null, lats)) / 2];
+        }
+        var map = new maplibregl.Map({
+            container: 'musterPresentMap',
+            style: MAP_STYLES.dark,
+            center: defaultCenter,
+            zoom: zoom
+        });
+        map.addControl(new maplibregl.NavigationControl(), 'top-right');
+        map.addControl(new maplibregl.FullscreenControl(), 'top-right');
+
+        var searchContainer = document.createElement('div');
+        searchContainer.className = 'muster-map-search';
+        searchContainer.innerHTML = '<input type="text" placeholder="Search place..." id="musterMapSearchInput"><button type="button" id="musterMapSearchBtn"><i class="bi bi-search"></i> Search</button>';
+        map.getContainer().appendChild(searchContainer);
+        document.getElementById('musterMapSearchBtn').onclick = function() {
+            var q = document.getElementById('musterMapSearchInput').value.trim();
+            if (!q) return;
+            fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(q) + '&format=json&limit=1', { headers: { 'Accept': 'application/json' } })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data && data[0]) {
+                        var lat = parseFloat(data[0].lat);
+                        var lon = parseFloat(data[0].lon);
+                        map.flyTo({ center: [lon, lat], zoom: 14, duration: 1500 });
+                    }
+                })
+                .catch(function() {});
+        };
+        document.getElementById('musterMapSearchInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') document.getElementById('musterMapSearchBtn').click(); });
+
+        var styleContainer = document.createElement('div');
+        styleContainer.className = 'muster-map-styles';
+        var styles = [{ key: 'dark', label: 'Dark' }, { key: 'light', label: 'Light' }, { key: 'satellite', label: 'Satellite' }, { key: 'osm', label: 'OSM' }];
+        styles.forEach(function(s) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = s.label;
+            if (s.key === currentStyle) btn.classList.add('active');
+            btn.onclick = function() {
+                map.setStyle(typeof MAP_STYLES[s.key] === 'string' ? MAP_STYLES[s.key] : MAP_STYLES[s.key]);
+                currentStyle = s.key;
+                styleContainer.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+            };
+            styleContainer.appendChild(btn);
+        });
+        map.getContainer().appendChild(styleContainer);
+
+        map.on('load', function() {
+            locations.forEach(function(p) {
+                var popup = new maplibregl.Popup({ offset: 25 }).setHTML('<strong>' + (p.name || 'Reservist') + '</strong><br>Present');
+                var el = createPulseMarkerElement('muster-present-marker');
+                new maplibregl.Marker({ element: el, anchor: 'center' })
+                    .setLngLat([p.lng, p.lat])
+                    .setPopup(popup)
+                    .addTo(map);
+            });
+            if (rcdgLocation) {
+                var popup = new maplibregl.Popup({ offset: 25 }).setHTML('<strong>' + (rcdgLocation.name || 'RCDG') + '</strong>');
+                var el = createPulseMarkerElement('muster-rcdg-marker');
+                new maplibregl.Marker({ element: el, anchor: 'center' })
+                    .setLngLat([rcdgLocation.lng, rcdgLocation.lat])
+                    .setPopup(popup)
+                    .addTo(map);
+            }
+            if (cdcLocation) {
+                var popup = new maplibregl.Popup({ offset: 25 }).setHTML('<strong>' + (cdcLocation.name || 'CDC') + '</strong>');
+                var el = createPulseMarkerElement('muster-cdc-marker');
+                new maplibregl.Marker({ element: el, anchor: 'center' })
+                    .setLngLat([cdcLocation.lng, cdcLocation.lat])
+                    .setPopup(popup)
+                    .addTo(map);
+            }
+            if (allPoints.length > 1) {
+                var bounds = new maplibregl.LngLatBounds();
+                allPoints.forEach(function(p) { bounds.extend([p.lng, p.lat]); });
+                map.fitBounds(bounds, { padding: 50, maxZoom: 14 });
+            }
+        });
+    }
+    if (document.readyState === 'complete' && typeof maplibregl !== 'undefined') {
+        initMap();
+    } else {
+        window.addEventListener('load', initMap);
+    }
+})();
+</script>
+{% endblock %}
