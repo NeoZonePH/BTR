@@ -9,7 +9,7 @@ from django.db.models import Q, Count
 
 from users.models import User
 from users.forms import AccountCreateForm, AccountEditForm
-from references.models import Rcdg, Cdc
+from references.models import Rcdg, Cdc, Rank
 
 
 def _require_rescom(request):
@@ -619,3 +619,77 @@ def cdc_delete(request, pk):
         cdc.delete()
         messages.success(request, f'CDC "{code}" deleted.')
     return redirect('rescom:ref_cdc_list')
+
+
+# ════════════════════════════════════════════════════════════════
+# RANK REFERENCE CRUD (RESCOM only)
+# ════════════════════════════════════════════════════════════════
+
+@login_required
+def rank_list(request):
+    if not _require_rescom(request):
+        return redirect('dashboard')
+    q = request.GET.get('q', '').strip()
+    ranks = Rank.objects.all().order_by('rank_code')
+    if q:
+        ranks = ranks.filter(
+            Q(rank_code__icontains=q) | Q(rank_desc__icontains=q)
+        )
+    return render(request, 'rescom_portal/rank_list.html', {
+        'ranks': ranks,
+        'search_query': q,
+    })
+
+
+@login_required
+def rank_create(request):
+    if not _require_rescom(request):
+        return redirect('dashboard')
+    if request.method == 'POST':
+        rank = Rank(
+            rank_code=request.POST.get('rank_code', '').strip(),
+            rank_desc=request.POST.get('rank_desc', '').strip(),
+        )
+        try:
+            rank.save()
+            messages.success(request, f'Rank "{rank.rank_desc}" created successfully.')
+            return redirect('rescom:ref_rank_list')
+        except Exception as e:
+            messages.error(request, f'Error creating rank: {e}')
+    return render(request, 'rescom_portal/rank_form.html', {
+        'title': 'Create Rank',
+        'submit_label': 'Create Rank',
+    })
+
+
+@login_required
+def rank_edit(request, pk):
+    if not _require_rescom(request):
+        return redirect('dashboard')
+    rank = get_object_or_404(Rank, pk=pk)
+    if request.method == 'POST':
+        rank.rank_code = request.POST.get('rank_code', '').strip()
+        rank.rank_desc = request.POST.get('rank_desc', '').strip()
+        try:
+            rank.save()
+            messages.success(request, f'Rank "{rank.rank_desc}" updated.')
+            return redirect('rescom:ref_rank_list')
+        except Exception as e:
+            messages.error(request, f'Error updating rank: {e}')
+    return render(request, 'rescom_portal/rank_form.html', {
+        'title': 'Edit Rank',
+        'submit_label': 'Save Changes',
+        'rank': rank,
+    })
+
+
+@login_required
+def rank_delete(request, pk):
+    if not _require_rescom(request):
+        return redirect('dashboard')
+    rank = get_object_or_404(Rank, pk=pk)
+    if request.method == 'POST':
+        desc = rank.rank_desc
+        rank.delete()
+        messages.success(request, f'Rank "{desc}" deleted.')
+    return redirect('rescom:ref_rank_list')

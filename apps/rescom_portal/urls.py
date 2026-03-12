@@ -56,4 +56,10 @@ urlpatterns = [
     path('org/cdc/create/', views.cdc_create, name='ref_cdc_create'),
     path('org/cdc/<int:pk>/edit/', views.cdc_edit, name='ref_cdc_edit'),
     path('org/cdc/<int:pk>/delete/', views.cdc_delete, name='ref_cdc_delete'),
+
+    # Organization reference — Rank
+    path('org/rank/', views.rank_list, name='ref_rank_list'),
+    path('org/rank/create/', views.rank_create, name='ref_rank_create'),
+    path('org/rank/<int:pk>/edit/', views.rank_edit, name='ref_rank_edit'),
+    path('org/rank/<int:pk>/delete/', views.rank_delete, name='ref_rank_delete'),
 ]

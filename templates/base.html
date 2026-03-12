@@ -152,15 +152,15 @@
       </a>
 
       <div class="nav-section mt-3">Reference</div>
-      <a class="nav-link {% if 'ref_rcdg' in request.resolver_match.url_name or 'ref_cdc' in request.resolver_match.url_name %}active{% endif %}"
+      <a class="nav-link {% if 'ref_rcdg' in request.resolver_match.url_name or 'ref_cdc' in request.resolver_match.url_name or 'ref_rank' in request.resolver_match.url_name %}active{% endif %}"
         data-bs-toggle="collapse" href="#orgCollapse" role="button"
-        aria-expanded="{% if 'ref_rcdg' in request.resolver_match.url_name or 'ref_cdc' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
+        aria-expanded="{% if 'ref_rcdg' in request.resolver_match.url_name or 'ref_cdc' in request.resolver_match.url_name or 'ref_rank' in request.resolver_match.url_name %}true{% else %}false{% endif %}"
         style="display:flex;align-items:center;justify-content:space-between;">
         <span><i class="bi bi-diagram-3-fill"></i> Organization</span>
         <i class="bi bi-chevron-down" style="font-size:0.7rem;"></i>
       </a>
       <div
-        class="collapse {% if 'ref_rcdg' in request.resolver_match.url_name or 'ref_cdc' in request.resolver_match.url_name %}show{% endif %}"
+        class="collapse {% if 'ref_rcdg' in request.resolver_match.url_name or 'ref_cdc' in request.resolver_match.url_name or 'ref_rank' in request.resolver_match.url_name %}show{% endif %}"
         id="orgCollapse">
         <a href="{% url 'rescom:ref_rcdg_list' %}"
           class="nav-link {% if 'ref_rcdg' in request.resolver_match.url_name %}active{% endif %}"
@@ -171,6 +171,11 @@
           class="nav-link {% if 'ref_cdc' in request.resolver_match.url_name %}active{% endif %}"
           style="padding-left:38px;font-size:0.82rem;">
           <i class="bi bi-pin-map-fill"></i> CDC
+        </a>
+        <a href="{% url 'rescom:ref_rank_list' %}"
+          class="nav-link {% if 'ref_rank' in request.resolver_match.url_name %}active{% endif %}"
+          style="padding-left:38px;font-size:0.82rem;">
+          <i class="bi bi-award-fill"></i> Rank
         </a>
       </div>
       {% elif user.role == 'RCDG' %}

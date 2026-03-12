@@ -4,6 +4,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 
 from .models import User
+from references.models import Rank
 
 # Optional: disposable email validator (only used if package is installed)
 try:
@@ -61,11 +62,20 @@ class ReservistRegistrationForm(UserCreationForm):
             else:
                 field.widget.attrs.setdefault('class', 'form-control')
 
+        # Rank: dropdown from references.Rank
+        rank_choices = [('', 'Select Rank (optional)')] + [
+            (r.rank_desc, r.rank_desc) for r in Rank.objects.all().order_by('rank_code')
+        ]
+        self.fields['rank'] = forms.ChoiceField(
+            required=False,
+            choices=rank_choices,
+            widget=forms.Select(attrs={'class': 'form-select'}),
+        )
+
         placeholders = {
             'username': 'Username',
             'full_name': 'Full Name',
             'email': 'Email (optional)',
-            'rank': 'Rank (optional)',
             'afpsn': 'Service Number (optional)',
             'region': 'Region',
             'province': 'Province',
@@ -79,7 +89,6 @@ class ReservistRegistrationForm(UserCreationForm):
                 self.fields[name].widget.attrs['placeholder'] = placeholder
 
         # Optional fields
-        self.fields['rank'].required = False
         self.fields['afpsn'].required = False
         self.fields['email'].required = False
 

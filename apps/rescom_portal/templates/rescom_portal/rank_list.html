@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Rank Management{% endblock %}
+{% block topbar_title %}Rank Management{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header animate-fade-in d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h2>Ranks</h2>
+            <p>Manage rank reference records for reservist registration</p>
+        </div>
+        <a href="{% url 'rescom:ref_rank_create' %}" class="btn-target btn-target-primary"
+            style="padding:8px 18px;font-size:0.85rem;">
+            <i class="bi bi-plus-lg"></i> New Rank
+        </a>
+    </div>
+
+    <!-- Search -->
+    <div class="glass-card animate-fade-in mb-4" style="padding:14px 20px;">
+        <form method="get" class="d-flex gap-2">
+            <input type="text" name="q" value="{{ search_query }}" class="form-control"
+                placeholder="Search by code or description..."
+                style="max-width:400px;font-size:0.85rem;">
+            <button type="submit" class="btn-target btn-target-primary" style="padding:6px 16px;font-size:0.82rem;">
+                <i class="bi bi-search"></i> Search
+            </button>
+            {% if search_query %}
+            <a href="{% url 'rescom:ref_rank_list' %}" class="btn-target btn-target-outline"
+                style="padding:6px 16px;font-size:0.82rem;">
+                <i class="bi bi-x-lg"></i> Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="glass-card animate-fade-in">
+        <div class="table-responsive">
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Date Encoded</th>
+                        <th>Date Updated</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rank in ranks %}
+                    <tr>
+                        <td><strong>{{ rank.rank_code }}</strong></td>
+                        <td style="font-size:0.82rem;">{{ rank.rank_desc }}</td>
+                        <td style="font-size:0.82rem;">{{ rank.date_encoded|date:"M d, Y" }}</td>
+                        <td style="font-size:0.82rem;">{{ rank.date_updated|date:"M d, Y" }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{% url 'rescom:ref_rank_edit' rank.pk %}" class="btn-target btn-target-outline"
+                                    style="padding:4px 10px;font-size:0.75rem;" title="Edit">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                <form method="post" action="{% url 'rescom:ref_rank_delete' rank.pk %}" style="display:inline;"
+                                    onsubmit="return confirm('Delete rank {{ rank.rank_desc }}?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-target btn-target-danger"
+                                        style="padding:4px 10px;font-size:0.75rem;" title="Delete">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center" style="color:var(--text-muted);padding:40px;">
+                            <i class="bi bi-award" style="font-size:2rem;display:block;margin-bottom:8px;"></i>
+                            {% if search_query %}No rank records match "{{ search_query }}"{% else %}No rank records yet.{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

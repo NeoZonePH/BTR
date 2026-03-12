@@ -96,3 +96,20 @@ class Cdc(models.Model):
 
     class Meta:
         verbose_name_plural = "CDC"
+
+
+class Rank(models.Model):
+    """Military or organizational rank reference."""
+    rank_code = models.CharField(max_length=20, unique=True)
+    rank_desc = models.CharField(max_length=255)
+    time_encoded = models.TimeField(auto_now_add=True)
+    date_encoded = models.DateField(auto_now_add=True)
+    time_updated = models.TimeField(auto_now=True)
+    date_updated = models.DateField(auto_now=True)
+
+    class Meta:
+        ordering = ['rank_code']
+        verbose_name_plural = 'Ranks'
+
+    def __str__(self):
+        return self.rank_desc or self.rank_code

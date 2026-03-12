@@ -653,6 +653,19 @@ a:hover {
   outline: none;
 }
 
+/* Dropdown options: dark text for readability when list opens (native select) */
+.form-select option,
+select.form-select option {
+  color: #1e293b;
+  background: #fff;
+}
+
+[data-theme="light"] .form-select option,
+[data-theme="light"] select.form-select option {
+  color: #1e293b;
+  background: #fff;
+}
+
 .glass-form label {
   font-weight: 600;
   font-size: 0.85rem;

@@ -138,6 +138,13 @@ function initIncidentMap(containerId, apiUrl) {
     targetMap.addControl(new StyleToggleControl(), 'bottom-left');
     targetMap.addControl(new MapLegendControl(), 'bottom-right');
 
+    // Hide responder labels when clicking anywhere else on the map.
+    targetMap.on('click', function () {
+        if (visibleResponderLabelId) {
+            setResponderLabelVisibility(visibleResponderLabelId, false);
+        }
+    });
+
     // Hide the external HTML toggle since it's now inside the map
     const externalToggle = document.getElementById('mapStyleToggle');
     if (externalToggle) externalToggle.style.display = 'none';
@@ -994,6 +1001,7 @@ let trackingSocket = null;
 let currentRespondingIncidentId = null; // Which incident the current user is responding to (for showing Stop in popup)
 let activeResponderMarkers = {}; // Store by reservist_id to handle multiple responders
 let lastResponderCoords = null;
+let visibleResponderLabelId = null;
 
 function getResponderMarkerDisplayCoords(lat, lng, index, total) {
     if (total <= 1) {
@@ -1056,6 +1064,9 @@ function getResponderFallbackCoords() {
 function removeResponderMarker(reservistId) {
     if (!targetMap || !reservistId) return;
     const rid = String(reservistId);
+    if (visibleResponderLabelId === rid) {
+        visibleResponderLabelId = null;
+    }
     const m = activeResponderMarkers[rid];
     if (m) {
         m.remove();
@@ -1070,6 +1081,7 @@ function removeResponderMarker(reservistId) {
 /** Remove all responder markers and their route layers so they can be repopulated (e.g. after filter change or load). */
 function clearActiveResponderMarkers() {
     if (!targetMap) return;
+    visibleResponderLabelId = null;
     for (const rid of Object.keys(activeResponderMarkers)) {
         const m = activeResponderMarkers[rid];
         if (m) m.remove();
@@ -1438,6 +1450,26 @@ function getDistanceToIncident(respLat, respLng, incidentId) {
     return km.toFixed(2) + ' km';
 }
 
+function setResponderLabelVisibility(reservistId, visible) {
+    const rid = String(reservistId);
+    Object.keys(activeResponderMarkers).forEach((id) => {
+        const marker = activeResponderMarkers[id];
+        if (!marker) return;
+        const el = marker.getElement();
+        if (!el) return;
+        const label = el.querySelector('.resp-label');
+        if (!label) return;
+
+        if (visible && id === rid) {
+            label.classList.add('is-visible');
+        } else {
+            label.classList.remove('is-visible');
+        }
+    });
+
+    visibleResponderLabelId = visible ? rid : null;
+}
+
 function updateResponderOnMap(data, drawRoute = false) {
     if (!targetMap) return;
 
@@ -1498,6 +1530,14 @@ function updateResponderOnMap(data, drawRoute = false) {
                     z-index: 3;
                     border: 1px solid rgba(255,255,255,0.15);
                     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+                    opacity: 0;
+                    visibility: hidden;
+                    pointer-events: none;
+                    transition: opacity 0.18s ease;
+                }
+                .resp-label.is-visible {
+                    opacity: 1;
+                    visibility: visible;
                 }
                 .resp-distance {
                     font-size: 0.7rem;
@@ -1528,6 +1568,12 @@ function updateResponderOnMap(data, drawRoute = false) {
             </div>
         `;
 
+        el.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            const currentlyVisible = visibleResponderLabelId === String(rid);
+            setResponderLabelVisibility(rid, !currentlyVisible);
+        });
+
         activeResponderMarkers[rid] = new maplibregl.Marker({ element: el, anchor: 'center' })
             .setLngLat(coords)
             .addTo(targetMap);
@@ -1552,6 +1598,13 @@ function updateResponderOnMap(data, drawRoute = false) {
                 distNode.innerHTML = distText ? `📍 ${distText} away` : '';
             }
         }
+    }
+
+    // Keep labels hidden by default after create/update unless this marker is the currently toggled one.
+    if (visibleResponderLabelId) {
+        setResponderLabelVisibility(visibleResponderLabelId, true);
+    } else {
+        setResponderLabelVisibility(rid, false);
     }
 
     refreshResponderMarkerPositions();
