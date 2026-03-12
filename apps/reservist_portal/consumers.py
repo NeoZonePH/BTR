@@ -29,6 +29,16 @@ class IncidentAlertConsumer(AsyncWebsocketConsumer):
             'reservist_id': event.get('reservist_id'),
         }))
 
+    async def responder_stopped(self, event):
+        """Send stop event to all dashboards so stale responder marker/route can be removed globally."""
+        await self.send(text_data=json.dumps({
+            'type': 'responder_stopped',
+            'data': {
+                'reservist_id': event.get('reservist_id'),
+                'incident_id': event.get('incident_id'),
+            }
+        }))
+
 
 class IncidentTrackingConsumer(AsyncWebsocketConsumer):
     async def connect(self):

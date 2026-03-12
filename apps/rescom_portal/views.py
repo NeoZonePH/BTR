@@ -34,6 +34,9 @@ def hard_delete_incident(request, pk):
     
     incident = get_object_or_404(Incident, pk=pk)
     if request.method == 'POST':
+        # Remove attached evidence file from storage to free disk space.
+        if incident.video_upload:
+            incident.video_upload.delete(save=False)
         incident.delete()
         messages.success(request, 'Incident permanently deleted.')
     return redirect('reservist:recycle_bin')

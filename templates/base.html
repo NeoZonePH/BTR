@@ -232,6 +232,45 @@
         <h5>{% block topbar_title %}Dashboard{% endblock %}</h5>
       </div>
       <div class="topbar-right">
+        <!-- Real-time Incident Icon -->
+        {% if user.role == 'RESERVIST' %}
+        <a href="{% url 'reservist:incident_list' %}" class="notification-bell" id="topbarIncidentIcon" title="Incidents"
+          style="color:var(--text-primary);text-decoration:none;position:relative;display:flex;align-items:center;">
+          <i class="bi bi-exclamation-triangle-fill" style="font-size:1.2rem;"></i>
+          <span class="notification-badge" id="topbarIncidentBadge" style="display:none;">0</span>
+        </a>
+        {% elif user.role == 'RESCOM' %}
+        <a href="{% url 'rescom:rescom_incident_list' %}" class="notification-bell" id="topbarIncidentIcon" title="Incidents"
+          style="color:var(--text-primary);text-decoration:none;position:relative;display:flex;align-items:center;">
+          <i class="bi bi-exclamation-triangle-fill" style="font-size:1.2rem;"></i>
+          <span class="notification-badge" id="topbarIncidentBadge" style="display:none;">0</span>
+        </a>
+        {% elif user.role == 'RCDG' %}
+        <a href="{% url 'rcdg:rcdg_incident_list' %}" class="notification-bell" id="topbarIncidentIcon" title="Incidents"
+          style="color:var(--text-primary);text-decoration:none;position:relative;display:flex;align-items:center;">
+          <i class="bi bi-exclamation-triangle-fill" style="font-size:1.2rem;"></i>
+          <span class="notification-badge" id="topbarIncidentBadge" style="display:none;">0</span>
+        </a>
+        {% elif user.role == 'CDC' %}
+        <a href="{% url 'cdc:cdc_incident_list' %}" class="notification-bell" id="topbarIncidentIcon" title="Incidents"
+          style="color:var(--text-primary);text-decoration:none;position:relative;display:flex;align-items:center;">
+          <i class="bi bi-exclamation-triangle-fill" style="font-size:1.2rem;"></i>
+          <span class="notification-badge" id="topbarIncidentBadge" style="display:none;">0</span>
+        </a>
+        {% elif user.role == 'PDRRMO' %}
+        <a href="{% url 'pdrrmo:pdrrmo_incident_list' %}" class="notification-bell" id="topbarIncidentIcon" title="Incidents"
+          style="color:var(--text-primary);text-decoration:none;position:relative;display:flex;align-items:center;">
+          <i class="bi bi-exclamation-triangle-fill" style="font-size:1.2rem;"></i>
+          <span class="notification-badge" id="topbarIncidentBadge" style="display:none;">0</span>
+        </a>
+        {% elif user.role == 'MDRRMO' %}
+        <a href="{% url 'mdrrmo:mdrrmo_incident_list' %}" class="notification-bell" id="topbarIncidentIcon" title="Incidents"
+          style="color:var(--text-primary);text-decoration:none;position:relative;display:flex;align-items:center;">
+          <i class="bi bi-exclamation-triangle-fill" style="font-size:1.2rem;"></i>
+          <span class="notification-badge" id="topbarIncidentBadge" style="display:none;">0</span>
+        </a>
+        {% endif %}
+
         <!-- Mustering notification (reservists only) -->
         {% if user.role == 'RESERVIST' and muster_notification_count|default:0 > 0 %}
         <a href="{% url 'reservist:mustering_list' %}" class="notification-bell" title="Mustering schedules" style="color:var(--text-primary);text-decoration:none;position:relative;display:flex;align-items:center;">
@@ -382,6 +421,127 @@
         userDD.classList.remove('show');
       }
     });
+
+    // ── Real-time incident topbar badge + sound ──
+    (function initRealtimeIncidentIcon() {
+      const icon = document.getElementById('topbarIncidentIcon');
+      const badge = document.getElementById('topbarIncidentBadge');
+      if (!icon || !badge || typeof WebSocket === 'undefined') return;
+
+      const storageKey = 'target_realtime_incident_count';
+      window.__TARGET_INCIDENT_ALERT_EVENT_BRIDGE__ = true;
+
+      function getStoredCount() {
+        const raw = sessionStorage.getItem(storageKey);
+        const parsed = parseInt(raw || '0', 10);
+        return Number.isNaN(parsed) || parsed < 0 ? 0 : parsed;
+      }
+
+      function setBadgeCount(count) {
+        if (count > 0) {
+          badge.textContent = count > 99 ? '99+' : String(count);
+          badge.style.display = 'inline-flex';
+        } else {
+          badge.textContent = '0';
+          badge.style.display = 'none';
+        }
+      }
+
+      function playIncidentAlertSound() {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const play = (freq, start, duration) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = freq;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.15, start);
+            gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+            osc.start(start);
+            osc.stop(start + duration);
+          };
+          play(880, 0, 0.15);
+          play(880, 0.25, 0.15);
+          play(880, 0.5, 0.2);
+        } catch (err) {
+          console.warn('Incident alert sound failed:', err);
+        }
+      }
+
+      function bumpBadge() {
+        const next = getStoredCount() + 1;
+        sessionStorage.setItem(storageKey, String(next));
+        setBadgeCount(next);
+      }
+
+      icon.addEventListener('click', function () {
+        sessionStorage.removeItem(storageKey);
+        setBadgeCount(0);
+      });
+
+      setBadgeCount(getStoredCount());
+
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = protocol + '//' + window.location.host + '/ws/incident-alerts/';
+      let socket = null;
+      let reconnectTimeout = null;
+
+      function connect() {
+        if (socket && socket.readyState === WebSocket.OPEN) return;
+        try {
+          socket = new WebSocket(wsUrl);
+          window.__TARGET_INCIDENT_ALERT_SOCKET_ACTIVE__ = true;
+
+          socket.onmessage = function (event) {
+            try {
+              const msg = JSON.parse(event.data || '{}');
+              if (!msg || !msg.type) return;
+
+              if (msg.type === 'responder_stopped') {
+                window.dispatchEvent(new CustomEvent('target:responder-stopped', {
+                  detail: msg.data || msg,
+                }));
+                return;
+              }
+
+              if (msg.type !== 'new_incident_alert') return;
+
+              const currentUserId = window.__CURRENT_USER_ID__;
+              const isSelfReport = currentUserId != null && String(msg.reservist_id) === String(currentUserId);
+
+              window.dispatchEvent(new CustomEvent('target:new-incident-alert', { detail: msg }));
+
+              if (isSelfReport) return;
+              bumpBadge();
+              playIncidentAlertSound();
+            } catch (err) {
+              console.warn('Incident alert parse error:', err);
+            }
+          };
+
+          socket.onclose = function () {
+            socket = null;
+            window.__TARGET_INCIDENT_ALERT_SOCKET_ACTIVE__ = false;
+            if (!reconnectTimeout) {
+              reconnectTimeout = setTimeout(function () {
+                reconnectTimeout = null;
+                connect();
+              }, 5000);
+            }
+          };
+
+          socket.onerror = function () {
+            if (socket) socket.close();
+          };
+        } catch (err) {
+          console.warn('Incident alert websocket connect failed:', err);
+        }
+      }
+
+      connect();
+    })();
 
     // ── Global SweetAlert Delete Confirmation ──
     function confirmDelete(e, form, customMessage) {

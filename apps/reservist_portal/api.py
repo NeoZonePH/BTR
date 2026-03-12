@@ -113,6 +113,7 @@ import math
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .tracking_models import ResponderTracking
+from .consumers import INCIDENT_ALERTS_GROUP
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     """Calculate distance in meters between two lat/lng coordinates."""
@@ -252,6 +253,16 @@ def stop_responder(request):
                 'reservist_id': str(request.user.id),
             },
         )
+        # Broadcast globally so every dashboard map can remove this responder
+        # even if an incident-specific tracker socket is temporarily disconnected.
+        async_to_sync(channel_layer.group_send)(
+            INCIDENT_ALERTS_GROUP,
+            {
+                'type': 'responder_stopped',
+                'reservist_id': str(request.user.id),
+                'incident_id': str(incident_id),
+            },
+        )
         return Response({'success': True})
     except Incident.DoesNotExist:
         return Response({'success': False, 'error': 'Incident not found'}, status=404)
@@ -292,4 +303,3 @@ def incident_description_improve(request):
         'improved': improved,
         'unchanged': (improved or '') == (text or ''),
     })
-

@@ -206,6 +206,35 @@ function playIncidentAlarm() {
  * Skips playing alarm if the current user is the one who submitted (reservist).
  */
 function connectIncidentAlerts(apiUrl) {
+    // If base template already maintains a global incident-alert socket,
+    // just subscribe map actions to global custom events to avoid duplicate alarms/sockets.
+    if (window.__TARGET_INCIDENT_ALERT_EVENT_BRIDGE__ === true) {
+        if (!window.__TARGET_MAP_INCIDENT_ALERT_EVENT_LISTENER__) {
+            window.__TARGET_MAP_INCIDENT_ALERT_EVENT_LISTENER__ = function () {
+                if (typeof loadIncidents === 'function' && currentApiUrl) {
+                    loadIncidents(currentApiUrl);
+                }
+            };
+            window.addEventListener('target:new-incident-alert', window.__TARGET_MAP_INCIDENT_ALERT_EVENT_LISTENER__);
+        }
+
+        if (!window.__TARGET_MAP_RESPONDER_STOP_EVENT_LISTENER__) {
+            window.__TARGET_MAP_RESPONDER_STOP_EVENT_LISTENER__ = function (event) {
+                const stopData = event && event.detail ? event.detail : null;
+                if (!stopData || !stopData.reservist_id) return;
+                removeResponderMarker(stopData.reservist_id);
+                const currentUserId = (typeof window.__USER_ID__ !== 'undefined' && window.__USER_ID__ != null)
+                    ? String(window.__USER_ID__)
+                    : null;
+                if (currentUserId && String(stopData.reservist_id) === currentUserId) {
+                    currentRespondingIncidentId = null;
+                }
+            };
+            window.addEventListener('target:responder-stopped', window.__TARGET_MAP_RESPONDER_STOP_EVENT_LISTENER__);
+        }
+        return;
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = protocol + '//' + window.location.host + '/ws/incident-alerts/';
     let socket = null;
@@ -218,6 +247,19 @@ function connectIncidentAlerts(apiUrl) {
             socket.onmessage = function (event) {
                 try {
                     const msg = JSON.parse(event.data);
+                    if (msg.type === 'responder_stopped') {
+                        const stopData = msg.data ? msg.data : msg;
+                        if (stopData && stopData.reservist_id) {
+                            removeResponderMarker(stopData.reservist_id);
+                            const currentUserId = (typeof window.__USER_ID__ !== 'undefined' && window.__USER_ID__ != null)
+                                ? String(window.__USER_ID__)
+                                : null;
+                            if (currentUserId && String(stopData.reservist_id) === currentUserId) {
+                                currentRespondingIncidentId = null;
+                            }
+                        }
+                        return;
+                    }
                     if (msg.type !== 'new_incident_alert') return;
                     const currentUserId = window.__CURRENT_USER_ID__;
                     const reservistId = msg.reservist_id;
@@ -424,9 +466,8 @@ class MapLegendControl {
                 .map-legend-row:last-child { margin-bottom: 0; }
                 .map-legend-dot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #fff; flex-shrink: 0; }
                 .map-legend-label { white-space: nowrap; }
-                @media (max-width: 991px) {
-                    .map-legend-ctrl,
-                    .maplibregl-ctrl-group.maplibregl-ctrl-bottom-right { display: none !important; visibility: hidden !important; }
+                @media (max-width: 767.98px) {
+                    .map-legend-ctrl { display: none !important; visibility: hidden !important; }
                 }
             `;
             document.head.appendChild(css);
@@ -911,10 +952,9 @@ class IncidentListControl {
                 .map-incident-list-panel #mapIncidentListItems::-webkit-scrollbar-thumb:hover {
                     background: rgba(255,255,255,0.35);
                 }
-                @media (max-width: 991px) {
+                @media (max-width: 767.98px) {
                     .map-incident-list-panel,
-                    .map-incident-list-panel.is-fullscreen,
-                    .maplibregl-ctrl-group.maplibregl-ctrl-top-left { display: none !important; visibility: hidden !important; }
+                    .map-incident-list-panel.is-fullscreen { display: none !important; visibility: hidden !important; }
                 }
             `;
             document.head.appendChild(style);
@@ -1057,13 +1097,27 @@ function loadActiveResponders() {
                 ? String(window.__USER_ID__)
                 : null;
             let currentUserActiveIncidentId = null;
+            const visibleResponderIds = new Set();
 
             responders.forEach((r) => {
                 if (incidentIds.has(String(r.incident_id))) {
+                    visibleResponderIds.add(String(r.reservist_id));
                     updateResponderOnMap(r, true);
                     if (currentUserId && String(r.reservist_id) === currentUserId) {
                         currentUserActiveIncidentId = String(r.incident_id);
                     }
+                }
+            });
+
+            // Reconcile markers/routes from stale state (e.g. websocket drop or missed stop event).
+            Object.keys(activeResponderMarkers).forEach((rid) => {
+                const marker = activeResponderMarkers[rid];
+                const markerIncidentId = marker && marker.__responderData && marker.__responderData.incidentId
+                    ? String(marker.__responderData.incidentId)
+                    : null;
+
+                if (markerIncidentId && incidentIds.has(markerIncidentId) && !visibleResponderIds.has(String(rid))) {
+                    removeResponderMarker(rid);
                 }
             });
 
@@ -1329,6 +1383,12 @@ function stopRespondingAndNotify(event, incidentId) {
         stopBtn.textContent = "Stopping...";
         stopBtn.disabled = true;
     }
+
+    // Stop local tracking immediately so no extra location updates are sent while stopping.
+    stopResponding();
+    const uid = (typeof window.__USER_ID__ !== 'undefined' && window.__USER_ID__ != null) ? String(window.__USER_ID__) : null;
+    if (uid) removeResponderMarker(uid);
+
     fetch('/api/responder/stop/', {
         method: 'POST',
         headers: {
@@ -1337,12 +1397,16 @@ function stopRespondingAndNotify(event, incidentId) {
         },
         body: JSON.stringify({ incident_id: incidentId }),
     })
-        .then(() => {
-            stopResponding();
-            const uid = (typeof window.__USER_ID__ !== 'undefined' && window.__USER_ID__ != null) ? String(window.__USER_ID__) : null;
-            if (uid) removeResponderMarker(uid);
+        .then((res) => res.json().catch(() => ({ success: false })))
+        .then((data) => {
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to stop responder');
+            }
         })
-        .catch((err) => console.error('Error stopping responder:', err))
+        .catch((err) => {
+            console.error('Error stopping responder:', err);
+            loadActiveResponders();
+        })
         .finally(() => {
             // Remove the Stop button and restore the status button to "Respond" so the popup can be used again
             if (stopBtn && stopBtn.parentNode) {
@@ -1581,4 +1645,3 @@ function observeIncidentTrackers(incidents) {
         };
     });
 }
-
