@@ -42,12 +42,14 @@
                     {% endif %}
 
                     <div class="row">
+                        {% if not autogenerate_credentials %}
                         <div class="col-md-6 mb-3">
                             <label>Username</label>
                             {{ form.username }}
                         </div>
+                        {% endif %}
                         <div class="col-md-6 mb-3">
-                            <label>Full Name</label>
+                            <label>Full Name <span style="color:#ef4444;">*</span></label>
                             {{ form.full_name }}
                         </div>
                     </div>
@@ -116,6 +118,7 @@
                             </select>
                         </div>
                     </div>
+                    {% if not autogenerate_credentials %}
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label>Password</label>
@@ -126,6 +129,12 @@
                             {{ form.password2 }}
                         </div>
                     </div>
+                    {% else %}
+                    <div class="alert mb-3" style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);font-size:0.82rem;color:var(--text-secondary);">
+                        <i class="bi bi-key-fill" style="color:var(--accent);"></i>
+                        Username and password will be auto-generated. The credentials will be shown after account creation—share them securely with the user.
+                    </div>
+                    {% endif %}
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn-target btn-target-primary">
@@ -224,7 +233,8 @@
             });
     });
 
-    // Before form submit, replace IDs with text names
+    // Before form submit, replace address IDs with text names (region/province/city/barangay store text)
+    // RCDG and CDC dropdowns must keep numeric IDs for assigned_rcdg_ref / assigned_cdc_ref (foreign keys)
     document.querySelector('form').addEventListener('submit', function () {
         const replaceWithText = (sel) => {
             const selected = sel.options[sel.selectedIndex];
@@ -236,10 +246,6 @@
         replaceWithText(provinceSel);
         replaceWithText(citySel);
         replaceWithText(barangaySel);
-        var rS = document.getElementById('sel_rcdg');
-        var cS = document.getElementById('sel_cdc');
-        if (rS) { var o = rS.options[rS.selectedIndex]; if (o && o.value) o.value = o.textContent.trim(); }
-        if (cS) { var o2 = cS.options[cS.selectedIndex]; if (o2 && o2.value) o2.value = o2.textContent.trim(); }
     });
 
     // Cascading RCDG -> CDC dropdown

@@ -88,4 +88,105 @@
         </div>
     </div>
 </div>
+
+{% if created_account_credentials %}
+<!-- Credentials Modal (shown after SweetAlert) -->
+<div class="modal fade" id="credentialsModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false"
+    aria-labelledby="credentialsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--bg-card);border:1px solid var(--border-color);">
+            <div class="modal-header" style="border-bottom:1px solid var(--border-color);">
+                <h5 class="modal-title" id="credentialsModalLabel" style="font-weight:700;">
+                    <i class="bi bi-key-fill" style="color:var(--accent);"></i> Account Credentials
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3" style="font-size:0.9rem;color:var(--text-secondary);">
+                    {{ created_account_credentials.account_type }} account <strong>{{ created_account_credentials.full_name }}</strong> was created. Copy and share these credentials securely with the user.
+                </p>
+                <div class="mb-3">
+                    <label class="form-label" style="font-size:0.82rem;font-weight:600;">Username</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control" id="credUsername" readonly
+                            value="{{ created_account_credentials.username }}"
+                            style="font-family:monospace;background:var(--bg-glass);color:#e2e8f0 !important;">
+                        <button type="button" class="btn-target btn-target-outline" onclick="copyCred('credUsername', this)"
+                            style="flex-shrink:0;padding:8px 16px;">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-0">
+                    <label class="form-label" style="font-size:0.82rem;font-weight:600;">Password</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control" id="credPassword" readonly
+                            value="{{ created_account_credentials.password }}"
+                            style="font-family:monospace;background:var(--bg-glass);color:#e2e8f0 !important;">
+                        <button type="button" class="btn-target btn-target-outline" onclick="copyCred('credPassword', this)"
+                            style="flex-shrink:0;padding:8px 16px;">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid var(--border-color);">
+                <button type="button" class="btn-target btn-target-outline" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg"></i> Close
+                </button>
+                <button type="button" class="btn-target btn-target-primary" data-bs-dismiss="modal">
+                    <i class="bi bi-check-lg"></i> I've Copied the Credentials
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+(function() {
+    var credModal = document.getElementById('credentialsModal');
+    if (credModal) {
+        function copyCred(inputId, btn) {
+            var el = document.getElementById(inputId);
+            el.select();
+            el.setSelectionRange(0, 99999);
+            function showFeedback() {
+                var icon = btn.querySelector('i');
+                icon.className = 'bi bi-check-lg';
+                btn.classList.add('btn-target-primary');
+                btn.classList.remove('btn-target-outline');
+                setTimeout(function() {
+                    icon.className = 'bi bi-clipboard';
+                    btn.classList.remove('btn-target-primary');
+                    btn.classList.add('btn-target-outline');
+                }, 1500);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(el.value).then(showFeedback).catch(function() {
+                    if (document.execCommand('copy')) showFeedback();
+                });
+            } else if (document.execCommand('copy')) {
+                showFeedback();
+            }
+        }
+        window.copyCred = copyCred;
+
+        Swal.fire({
+            title: 'Success!',
+            text: '{{ created_account_credentials.account_type }} account "{{ created_account_credentials.full_name|escapejs }}" created successfully.',
+            icon: 'success',
+            timer: 2000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            background: 'var(--bg-glass)',
+            color: 'var(--text-primary)',
+            customClass: { popup: 'glass-card' },
+            didClose: function() {
+                var modal = new bootstrap.Modal(credModal, { backdrop: 'static', keyboard: false });
+                modal.show();
+            }
+        });
+    }
+})();
+</script>
+{% endif %}
 {% endblock %}

@@ -113,3 +113,25 @@ class Rank(models.Model):
 
     def __str__(self):
         return self.rank_desc or self.rank_code
+
+
+class AppBranding(models.Model):
+    """Singleton: web application name (name_code, name_desc). Editable by RESCOM in account settings."""
+    name_code = models.CharField(max_length=50, default='TARGET')
+    name_desc = models.CharField(max_length=255, default='TARGET — Emergency Tracker')
+
+    class Meta:
+        verbose_name = 'App Branding'
+        verbose_name_plural = 'App Branding'
+
+    def __str__(self):
+        return self.name_desc
+
+    @classmethod
+    def get(cls):
+        """Return the single branding instance, creating defaults if none exist."""
+        obj, _ = cls.objects.get_or_create(
+            pk=1,
+            defaults={'name_code': 'TARGET', 'name_desc': 'TARGET — Emergency Tracker'},
+        )
+        return obj

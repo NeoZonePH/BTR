@@ -75,6 +75,7 @@ TEMPLATES = [
                 'users.context_processors.notifications_processor',
                 'apps.cdc_portal.context_processors.reservist_approval_notification',
                 'apps.cdc_portal.context_processors.muster_notification_for_reservist',
+                'references.context_processors.app_branding',
             ],
         },
     },

@@ -18,11 +18,28 @@ def _require_cdc(request):
     return True
 
 
+def _generate_drrmo_username(role):
+    """Generate unique username for PDRRMO/MDRRMO account."""
+    import secrets
+    prefix = role.lower() + '_'
+    base = prefix + secrets.token_hex(4)
+    while User.objects.filter(username=base).exists():
+        base = prefix + secrets.token_hex(4)
+    return base
+
+
+def _generate_random_password():
+    """Generate secure random password."""
+    return User.objects.make_random_password(length=12)
+
+
 @login_required
 def manage_drrmo_accounts(request):
     """CDC: list and create PDRRMO/MDRRMO accounts under this CDC."""
     if not _require_cdc(request):
         return redirect('dashboard')
+
+    created_credentials = request.session.pop('created_drrmo_credentials', None)
 
     drrmo_users = User.objects.filter(
         role__in=['PDRRMO', 'MDRRMO'], assigned_cdc=request.user.assigned_cdc,
@@ -36,12 +53,13 @@ def manage_drrmo_accounts(request):
         'edit_url_name': 'cdc:edit_drrmo_account',
         'delete_url_name': 'cdc:delete_drrmo_account',
         'show_role_picker': True,
+        'created_account_credentials': created_credentials,
     })
 
 
 @login_required
 def create_drrmo_account(request):
-    """CDC: create a new PDRRMO or MDRRMO account under this CDC."""
+    """CDC: create a new PDRRMO or MDRRMO account under this CDC. Username and password are auto-generated."""
     if not _require_cdc(request):
         return redirect('dashboard')
 
@@ -51,10 +69,14 @@ def create_drrmo_account(request):
         role_choice = 'PDRRMO'
 
     if request.method == 'POST':
-        form = AccountCreateForm(request.POST)
         role_choice = request.POST.get('drrmo_role', 'PDRRMO')
         if role_choice not in ('PDRRMO', 'MDRRMO'):
             role_choice = 'PDRRMO'
+        data = request.POST.copy()
+        data['username'] = _generate_drrmo_username(role_choice)
+        gen_password = _generate_random_password()
+        data['password1'] = data['password2'] = gen_password
+        form = AccountCreateForm(data)
         if form.is_valid():
             user = form.save(commit=False)
             user.role = role_choice
@@ -62,7 +84,12 @@ def create_drrmo_account(request):
             user.assigned_cdc = request.user.assigned_cdc
             user.assigned_rcdg = request.user.assigned_rcdg
             user.save()
-            messages.success(request, f'{role_choice} account "{user.full_name}" created successfully.')
+            request.session['created_drrmo_credentials'] = {
+                'username': user.username,
+                'password': gen_password,
+                'full_name': user.full_name,
+                'account_type': role_choice,
+            }
             return redirect('cdc:manage_drrmo_accounts')
 
     return render(request, 'cdc_portal/accounts/create_account.html', {
@@ -72,6 +99,7 @@ def create_drrmo_account(request):
         'back_url_name': 'cdc:manage_drrmo_accounts',
         'show_role_picker': True,
         'current_role': role_choice,
+        'autogenerate_credentials': True,
     })
 
 

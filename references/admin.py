@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Region, Province, CityMunicipality, Barangay, Rank
+from .models import Region, Province, CityMunicipality, Barangay, Rank, AppBranding
 
 
 @admin.register(Region)
@@ -33,3 +33,8 @@ class BarangayAdmin(admin.ModelAdmin):
 class RankAdmin(admin.ModelAdmin):
     list_display = ('rank_code', 'rank_desc', 'date_encoded', 'date_updated')
     search_fields = ('rank_code', 'rank_desc')
+
+
+@admin.register(AppBranding)
+class AppBrandingAdmin(admin.ModelAdmin):
+    list_display = ('name_code', 'name_desc')

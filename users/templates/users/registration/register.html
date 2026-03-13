@@ -22,7 +22,7 @@
 <div class="auth-wrapper">
     <div class="auth-card" style="max-width:560px;">
         <div class="auth-logo">
-            <h1>TARGET</h1>
+            <h1>{{ app_name_code|default:'TARGET' }}</h1>
             <p>Reservist Registration</p>
         </div>
 
@@ -183,7 +183,7 @@
             <div class="modal-body" style="color:var(--text-secondary);font-size:0.9rem;line-height:1.6;">
                 <p class="mb-3"><strong>Effective Date:</strong> Upon registration</p>
 
-                <p class="mb-3">By registering as a Reservist in the TARGET (Tactical Automated Response & Geolocation Emergency Tracker) platform, you acknowledge and agree to the following terms:</p>
+                <p class="mb-3">By registering as a Reservist in the {{ app_name_desc|default:'TARGET (Tactical Automated Response & Geolocation Emergency Tracker)' }} platform, you acknowledge and agree to the following terms:</p>
 
                 <h6 class="mt-4 mb-2" style="color:var(--text-primary);">1. Information Collection and Use</h6>
                 <p>You consent to the collection, storage, and use of your personal information by the platform and the Reserve Command organization. This includes:</p>

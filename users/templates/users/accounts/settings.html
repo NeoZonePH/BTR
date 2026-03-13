@@ -97,6 +97,40 @@
                 </form>
             </div>
         </div>
+
+        {% if user.role == 'RESCOM' %}
+        <!-- Application Name (RESCOM only) -->
+        <div class="col-lg-12 animate-fade-in stagger-2">
+            <div class="glass-card">
+                <h5 style="font-weight:700;margin-bottom:4px;"><i class="bi bi-palette-fill"
+                        style="color:var(--accent);"></i> Application Name</h5>
+                <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:20px;">Customize the web application name shown across the platform (e.g. change TARGET to BTR Platform).</p>
+
+                <form method="post" id="brandingForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="branding">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label style="font-weight:600;font-size:0.82rem;">Name Code</label>
+                            <input type="text" name="name_code" class="form-control" maxlength="50"
+                                placeholder="e.g. TARGET, BTR" value="{{ app_branding.name_code|default:'TARGET' }}">
+                            <small style="font-size:0.72rem;color:var(--text-muted);">Short code shown in logo/sidebar</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label style="font-weight:600;font-size:0.82rem;">Name Description</label>
+                            <input type="text" name="name_desc" class="form-control" maxlength="255"
+                                placeholder="e.g. BTR Platform" value="{{ app_branding.name_desc|default:'TARGET — Emergency Tracker' }}">
+                            <small style="font-size:0.72rem;color:var(--text-muted);">Full name/tagline shown in titles</small>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-target btn-target-primary">
+                        <i class="bi bi-check2-circle"></i> Save Application Name
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 

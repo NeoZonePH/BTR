@@ -18,11 +18,27 @@ def _require_rcdg(request):
     return True
 
 
+def _generate_cdc_username():
+    """Generate unique username for CDC account."""
+    import secrets
+    base = 'cdc_' + secrets.token_hex(4)
+    while User.objects.filter(username=base).exists():
+        base = 'cdc_' + secrets.token_hex(4)
+    return base
+
+
+def _generate_random_password():
+    """Generate secure random password."""
+    return User.objects.make_random_password(length=12)
+
+
 @login_required
 def manage_cdc_accounts(request):
     """RCDG: list and create CDC accounts under this RCDG."""
     if not _require_rcdg(request):
         return redirect('dashboard')
+
+    created_credentials = request.session.pop('created_cdc_credentials', None)
 
     cdc_users = User.objects.filter(
         role='CDC', assigned_rcdg=request.user.assigned_rcdg
@@ -35,18 +51,23 @@ def manage_cdc_accounts(request):
         'create_url_name': 'rcdg:create_cdc_account',
         'edit_url_name': 'rcdg:edit_cdc_account',
         'delete_url_name': 'rcdg:delete_cdc_account',
+        'created_account_credentials': created_credentials,
     })
 
 
 @login_required
 def create_cdc_account(request):
-    """RCDG: create a new CDC account under this RCDG."""
+    """RCDG: create a new CDC account under this RCDG. Username and password are auto-generated."""
     if not _require_rcdg(request):
         return redirect('dashboard')
 
     form = AccountCreateForm()
     if request.method == 'POST':
-        form = AccountCreateForm(request.POST)
+        data = request.POST.copy()
+        data['username'] = _generate_cdc_username()
+        gen_password = _generate_random_password()
+        data['password1'] = data['password2'] = gen_password
+        form = AccountCreateForm(data)
         if form.is_valid():
             user = form.save(commit=False)
             user.role = User.Role.CDC
@@ -58,7 +79,12 @@ def create_cdc_account(request):
             if cdc_ref_id:
                 user.assigned_cdc = Cdc.objects.filter(pk=cdc_ref_id).first()
             user.save()
-            messages.success(request, f'CDC account "{user.full_name}" created successfully.')
+            request.session['created_cdc_credentials'] = {
+                'username': user.username,
+                'password': gen_password,
+                'full_name': user.full_name,
+                'account_type': 'CDC',
+            }
             return redirect('rcdg:manage_cdc_accounts')
 
     return render(request, 'rcdg_portal/accounts/create_account.html', {
@@ -68,6 +94,7 @@ def create_cdc_account(request):
         'back_url_name': 'rcdg:manage_cdc_accounts',
         'rcdgs': Rcdg.objects.all().order_by('rcdg_desc'),
         'show_cdc_dropdown': True,
+        'autogenerate_credentials': True,
     })
 
 

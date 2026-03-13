@@ -6,8 +6,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description"
-    content="TARGET — Tactical Automated Response & Geolocation Emergency Tracker. Government-grade emergency incident management system.">
-  <title>{% block title %}TARGET{% endblock %} — Emergency Tracker</title>
+    content="{{ app_name_desc|default:'TARGET — Tactical Automated Response & Geolocation Emergency Tracker' }}. Government-grade emergency incident management system.">
+  <title>{% block title %}{{ app_name_code|default:'TARGET' }}{% endblock %} — Emergency Tracker</title>
 
   <!-- Favicon (crosshair) -->
   <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
@@ -46,7 +46,7 @@
   <!-- ═══ Sidebar ═══ -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-      <h3>TARGET</h3>
+      <h3>{{ app_name_code|default:'TARGET' }}</h3>
       <small>Emergency Tracker System</small>
     </div>
     <nav class="sidebar-nav">

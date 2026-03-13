@@ -189,6 +189,8 @@ def manage_rcdg_accounts(request):
     if not _require_rescom(request):
         return redirect('dashboard')
 
+    created_credentials = request.session.pop('created_rcdg_credentials', None)
+
     rcdg_users = User.objects.filter(role='RCDG').order_by('full_name')
     return render(request, 'rescom_portal/accounts/manage_accounts.html', {
         'accounts': rcdg_users,
@@ -197,24 +199,67 @@ def manage_rcdg_accounts(request):
         'create_url_name': 'rescom:create_rcdg_account',
         'edit_url_name': 'rescom:edit_rcdg_account',
         'delete_url_name': 'rescom:delete_rcdg_account',
+        'created_account_credentials': created_credentials,
     })
+
+
+def _generate_rcdg_username():
+    """Generate unique username for RCDG account."""
+    import secrets
+    base = 'rcdg_' + secrets.token_hex(4)
+    while User.objects.filter(username=base).exists():
+        base = 'rcdg_' + secrets.token_hex(4)
+    return base
+
+
+def _generate_cdc_username():
+    """Generate unique username for CDC account."""
+    import secrets
+    base = 'cdc_' + secrets.token_hex(4)
+    while User.objects.filter(username=base).exists():
+        base = 'cdc_' + secrets.token_hex(4)
+    return base
+
+
+def _generate_drrmo_username(role):
+    """Generate unique username for PDRRMO/MDRRMO account."""
+    import secrets
+    prefix = role.lower() + '_'
+    base = prefix + secrets.token_hex(4)
+    while User.objects.filter(username=base).exists():
+        base = prefix + secrets.token_hex(4)
+    return base
+
+
+def _generate_random_password():
+    """Generate secure random password."""
+    return User.objects.make_random_password(length=12)
 
 
 @login_required
 def create_rcdg_account(request):
-    """RESCOM: create a new RCDG account."""
+    """RESCOM: create a new RCDG account. Username and password are auto-generated."""
     if not _require_rescom(request):
         return redirect('dashboard')
 
     form = AccountCreateForm()
     if request.method == 'POST':
-        form = AccountCreateForm(request.POST)
+        data = request.POST.copy()
+        data['username'] = _generate_rcdg_username()
+        gen_password = _generate_random_password()
+        data['password1'] = data['password2'] = gen_password
+        form = AccountCreateForm(data)
         if form.is_valid():
             user = form.save(commit=False)
             user.role = User.Role.RCDG
             user.is_approved = True
             user.save()
-            messages.success(request, f'RCDG account "{user.full_name}" created successfully.')
+            request.session['created_rcdg_credentials'] = {
+                'username': user.username,
+                'password': gen_password,
+                'full_name': user.full_name,
+                'account_type': 'RCDG',
+            }
             return redirect('rescom:manage_rcdg_accounts')
     return render(request, 'rescom_portal/accounts/create_account.html', {
         'form': form,
@@ -222,6 +267,7 @@ def create_rcdg_account(request):
         'account_type_full': 'Regional Community Defense Group',
         'back_url_name': 'rescom:manage_rcdg_accounts',
         'rcdgs': Rcdg.objects.all().order_by('rcdg_desc'),
+        'autogenerate_credentials': True,
     })
 
 
@@ -272,6 +318,8 @@ def manage_cdc_accounts(request):
     if not _require_rescom(request):
         return redirect('dashboard')
 
+    created_credentials = request.session.pop('created_cdc_credentials', None)
+
     cdc_users = User.objects.filter(role='CDC').order_by('full_name')
     return render(request, 'rescom_portal/accounts/manage_accounts.html', {
         'accounts': cdc_users,
@@ -279,18 +327,23 @@ def manage_cdc_accounts(request):
         'account_type_full': 'Community Defense Center',
         'create_url_name': 'rescom:create_cdc_account',
         'delete_url_name': 'rescom:delete_cdc_account',
+        'created_account_credentials': created_credentials,
     })
 
 
 @login_required
 def create_cdc_account(request):
-    """RESCOM: create a new CDC account."""
+    """RESCOM: create a new CDC account. Username and password are auto-generated."""
     if not _require_rescom(request):
         return redirect('dashboard')
 
     form = AccountCreateForm()
     if request.method == 'POST':
-        form = AccountCreateForm(request.POST)
+        data = request.POST.copy()
+        data['username'] = _generate_cdc_username()
+        gen_password = _generate_random_password()
+        data['password1'] = data['password2'] = gen_password
+        form = AccountCreateForm(data)
         if form.is_valid():
             user = form.save(commit=False)
             user.role = User.Role.CDC
@@ -302,7 +355,12 @@ def create_cdc_account(request):
             if cdc_ref_id:
                 user.assigned_cdc = Cdc.objects.filter(pk=cdc_ref_id).first()
             user.save()
-            messages.success(request, f'CDC account "{user.full_name}" created successfully.')
+            request.session['created_cdc_credentials'] = {
+                'username': user.username,
+                'password': gen_password,
+                'full_name': user.full_name,
+                'account_type': 'CDC',
+            }
             return redirect('rescom:manage_cdc_accounts')
     return render(request, 'rescom_portal/accounts/create_account.html', {
         'form': form,
@@ -311,6 +369,7 @@ def create_cdc_account(request):
         'back_url_name': 'rescom:manage_cdc_accounts',
         'rcdgs': Rcdg.objects.all().order_by('rcdg_desc'),
         'show_cdc_dropdown': True,
+        'autogenerate_credentials': True,
     })
 
 
@@ -337,6 +396,8 @@ def manage_drrmo_accounts(request):
     if not _require_rescom(request):
         return redirect('dashboard')
 
+    created_credentials = request.session.pop('created_drrmo_credentials', None)
+
     drrmo_users = User.objects.filter(role__in=['PDRRMO', 'MDRRMO']).order_by('role', 'full_name')
     return render(request, 'rescom_portal/accounts/manage_accounts.html', {
         'accounts': drrmo_users,
@@ -346,12 +407,13 @@ def manage_drrmo_accounts(request):
         'edit_url_name': None,
         'delete_url_name': 'rescom:delete_drrmo_account',
         'show_role_picker': True,
+        'created_account_credentials': created_credentials,
     })
 
 
 @login_required
 def create_drrmo_account(request):
-    """RESCOM: create a new PDRRMO or MDRRMO account."""
+    """RESCOM: create a new PDRRMO or MDRRMO account. Username and password are auto-generated."""
     if not _require_rescom(request):
         return redirect('dashboard')
 
@@ -361,16 +423,25 @@ def create_drrmo_account(request):
         role_choice = 'PDRRMO'
 
     if request.method == 'POST':
-        form = AccountCreateForm(request.POST)
         role_choice = request.POST.get('drrmo_role', 'PDRRMO')
         if role_choice not in ('PDRRMO', 'MDRRMO'):
             role_choice = 'PDRRMO'
+        data = request.POST.copy()
+        data['username'] = _generate_drrmo_username(role_choice)
+        gen_password = _generate_random_password()
+        data['password1'] = data['password2'] = gen_password
+        form = AccountCreateForm(data)
         if form.is_valid():
             user = form.save(commit=False)
             user.role = role_choice
             user.is_approved = True
             user.save()
-            messages.success(request, f'{role_choice} account "{user.full_name}" created successfully.')
+            request.session['created_drrmo_credentials'] = {
+                'username': user.username,
+                'password': gen_password,
+                'full_name': user.full_name,
+                'account_type': role_choice,
+            }
             return redirect('rescom:manage_drrmo_accounts')
     return render(request, 'rescom_portal/accounts/create_account.html', {
         'form': form,
@@ -379,6 +450,7 @@ def create_drrmo_account(request):
         'back_url_name': 'rescom:manage_drrmo_accounts',
         'show_role_picker': True,
         'current_role': role_choice,
+        'autogenerate_credentials': True,
     })
 
 

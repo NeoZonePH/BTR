@@ -99,7 +99,19 @@ def account_settings(request):
             except (InvalidOperation, ValueError):
                 messages.error(request, 'Invalid coordinates. Please enter valid numbers.')
 
-    return render(request, 'users/accounts/settings.html')
+        elif form_type == 'branding' and request.user.role == 'RESCOM':
+            from references.models import AppBranding
+            branding = AppBranding.get()
+            branding.name_code = request.POST.get('name_code', '').strip() or 'TARGET'
+            branding.name_desc = request.POST.get('name_desc', '').strip() or 'TARGET — Emergency Tracker'
+            branding.save()
+            messages.success(request, 'Application name updated!')
+
+    from references.models import AppBranding
+    branding = AppBranding.get()
+    return render(request, 'users/accounts/settings.html', {
+        'app_branding': branding,
+    })
 
 
 # ════════════════════════════════════════════════════════════════

@@ -150,12 +150,24 @@ class AccountCreateForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            field.widget.attrs.setdefault('class', 'form-control')
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs.setdefault('class', 'form-select')
+            else:
+                field.widget.attrs.setdefault('class', 'form-control')
+
+        # Rank: dropdown from references.Rank
+        rank_choices = [('', 'Select Rank (optional)')] + [
+            (r.rank_desc, r.rank_desc) for r in Rank.objects.all().order_by('rank_code')
+        ]
+        self.fields['rank'] = forms.ChoiceField(
+            required=False,
+            choices=rank_choices,
+            widget=forms.Select(attrs={'class': 'form-select'}),
+        )
 
         placeholders = {
             'username': 'Username',
             'full_name': 'Full Name',
-            'rank': 'Rank (optional)',
             'afpsn': 'Service Number (optional)',
             'region': 'Region',
             'province': 'Province',
@@ -188,12 +200,24 @@ class AccountEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            field.widget.attrs.setdefault('class', 'form-control')
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs.setdefault('class', 'form-select')
+            else:
+                field.widget.attrs.setdefault('class', 'form-control')
+
+        # Rank: dropdown from references.Rank
+        rank_choices = [('', 'Select Rank (optional)')] + [
+            (r.rank_desc, r.rank_desc) for r in Rank.objects.all().order_by('rank_code')
+        ]
+        self.fields['rank'] = forms.ChoiceField(
+            required=False,
+            choices=rank_choices,
+            widget=forms.Select(attrs={'class': 'form-select'}),
+        )
 
         placeholders = {
             'username': 'Username',
             'full_name': 'Full Name',
-            'rank': 'Rank (optional)',
             'afpsn': 'Service Number (optional)',
             'region': 'Region',
             'province': 'Province',
