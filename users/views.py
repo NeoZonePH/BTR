@@ -100,15 +100,30 @@ def account_settings(request):
                 messages.error(request, 'Invalid coordinates. Please enter valid numbers.')
 
         elif form_type == 'branding' and request.user.role == 'RESCOM':
-            from references.models import AppBranding
-            branding = AppBranding.get()
-            branding.name_code = request.POST.get('name_code', '').strip() or 'TARGET'
-            branding.name_desc = request.POST.get('name_desc', '').strip() or 'TARGET — Emergency Tracker'
-            branding.save()
-            messages.success(request, 'Application name updated!')
+            from django.db.utils import OperationalError, ProgrammingError
+            try:
+                from references.models import AppBranding
+                branding = AppBranding.get()
+                branding.name_code = request.POST.get('name_code', '').strip() or 'TARGET'
+                branding.name_desc = request.POST.get('name_desc', '').strip() or 'TARGET — Emergency Tracker'
+                branding.save()
+                messages.success(request, 'Application name updated!')
+            except (OperationalError, ProgrammingError):
+                messages.warning(
+                    request,
+                    'Branding could not be saved. Run: python manage.py migrate',
+                )
 
-    from references.models import AppBranding
-    branding = AppBranding.get()
+    # Load branding for form; use TARGET default if table doesn't exist
+    from types import SimpleNamespace
+    from django.db.utils import OperationalError, ProgrammingError
+    _DEFAULT_BRANDING = SimpleNamespace(name_code='TARGET', name_desc='TARGET — Emergency Tracker')
+    try:
+        from references.models import AppBranding
+        branding = AppBranding.get()
+    except (OperationalError, ProgrammingError):
+        branding = _DEFAULT_BRANDING
+
     return render(request, 'users/accounts/settings.html', {
         'app_branding': branding,
     })
